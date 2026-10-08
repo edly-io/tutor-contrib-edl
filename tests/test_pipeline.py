@@ -31,6 +31,7 @@ def _run(context):
 def _patch(monkeypatch):
     monkeypatch.setattr(pipeline, "reverse", lambda name, kwargs=None: "/csv/" + kwargs["course_id"])
     monkeypatch.setattr(pipeline, "_read_static", lambda name: "/* {} */".format(name))
+    monkeypatch.setattr(pipeline, "_course_has_lti_blocks", lambda course_key: True)
 
 
 def _staff_context():
@@ -56,6 +57,13 @@ def test_not_added_without_course_info_section():
     context = {"course": _Course(), "sections": [{"section_key": "data_download"}]}
     _run(context)
     assert [s["section_key"] for s in context["sections"]] == ["data_download"]
+
+
+def test_not_added_when_course_has_no_lti_blocks(monkeypatch):
+    monkeypatch.setattr(pipeline, "_course_has_lti_blocks", lambda course_key: False)
+    context = _staff_context()
+    _run(context)
+    assert [s["section_key"] for s in context["sections"]] == ["course_info"]
 
 
 def test_not_added_twice():
