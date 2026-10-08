@@ -74,5 +74,6 @@ class AddAutoAssessmentsTab(PipelineStep):
             "course_id": course_id,
             "threshold": getattr(settings, "EDL_AUTO_ASSESSMENT_THRESHOLD", DEFAULT_THRESHOLD),
             "csv_url": reverse("edl_plugin:auto_assessment_scores_csv", kwargs={"course_id": course_id}),
+            "data_url": reverse("edl_plugin:auto_assessment_scores_data", kwargs={"course_id": course_id}),
             "fragment": fragment,
         })

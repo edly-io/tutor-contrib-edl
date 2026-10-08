@@ -1,2 +1,28 @@
 .edl-aa { margin: 16px 0; }
 .edl-aa-intro { margin-bottom: 12px; }
+.edl-aa-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
+.edl-aa-search { min-width: 260px; padding: 6px 10px; }
+.edl-aa-assessment, .edl-aa-size { padding: 6px 8px; }
+.edl-aa-legend { display: inline-flex; gap: 8px; margin-left: auto; }
+.edl-aa-chip { padding: 2px 10px; border-radius: 12px; font-size: 12px; }
+.edl-aa-status { padding: 8px 0; color: #5f5f5f; }
+.edl-aa-scroll { overflow-x: auto; border: 1px solid #d5dbe2; border-radius: 6px; max-width: 100%; }
+.edl-aa-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-size: 13px; }
+.edl-aa-table th, .edl-aa-table td { padding: 8px 10px; border-bottom: 1px solid #e6eaee; border-right: 1px solid #eef1f4; text-align: left; vertical-align: top; }
+.edl-aa-table thead th { background: #f3f5f8; font-weight: 600; }
+.edl-aa-group { text-align: center !important; border-bottom: 1px solid #d5dbe2 !important; }
+.edl-aa-criterion { min-width: 150px; max-width: 220px; font-weight: 500 !important; }
+.edl-aa-sticky { position: sticky; left: 0; z-index: 1; background: #fff; min-width: 220px; box-shadow: 1px 0 0 #d5dbe2; }
+thead .edl-aa-sticky { background: #f3f5f8; z-index: 2; }
+.edl-aa-sub { color: #5f5f5f; font-size: 12px; font-weight: normal; }
+.edl-aa-table td { text-align: center; min-width: 110px; }
+.edl-aa-pct { font-weight: 600; }
+.edl-aa-label { font-size: 11px; }
+.edl-aa-demonstrated { background: #e4f5e8; color: #14532d; }
+.edl-aa-not-demonstrated { background: #fdf0d5; color: #7a4a00; }
+.edl-aa-empty { background: #fff; }
+.edl-aa-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
+.edl-aa-pager { display: inline-flex; gap: 4px; margin-left: auto; }
+.edl-aa-page { padding: 4px 10px; border: 1px solid #c9d1da; background: #fff; border-radius: 4px; cursor: pointer; }
+.edl-aa-page[disabled] { opacity: 0.5; cursor: default; }
+.edl-aa-current { background: #0075b4; color: #fff; border-color: #0075b4; }

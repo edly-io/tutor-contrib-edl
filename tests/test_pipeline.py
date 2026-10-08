@@ -91,3 +91,11 @@ def test_never_raises_when_reverse_fails(monkeypatch):
     context = _staff_context()
     _run(context)  # must not raise
     assert len(context["sections"]) == 1
+
+
+def test_section_has_both_urls():
+    context = _staff_context()
+    _run(context)
+    section = context["sections"][-1]
+    assert section["csv_url"] == "/csv/course-v1:Org+C+R"
+    assert section["data_url"] == "/csv/course-v1:Org+C+R"  # reverse is stubbed to one value

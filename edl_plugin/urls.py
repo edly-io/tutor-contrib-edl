@@ -14,4 +14,9 @@ urlpatterns = [
         views.auto_assessment_scores_csv,
         name="auto_assessment_scores_csv",
     ),
+    re_path(
+        r"^courses/{course_id}/instructor/auto_assessments/data$".format(course_id=COURSE_ID_PATTERN),
+        views.auto_assessment_scores_data,
+        name="auto_assessment_scores_data",
+    ),
 ]
