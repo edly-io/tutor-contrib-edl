@@ -52,7 +52,11 @@
     host.querySelector('.edl-aa-table-root').appendChild(bar);
 
     els.status = el('div', 'edl-aa-status');
+    els.status.setAttribute('role', 'status');
     els.scroll = el('div', 'edl-aa-scroll');
+    els.scroll.tabIndex = 0;
+    els.scroll.setAttribute('role', 'region');
+    els.scroll.setAttribute('aria-label', 'Auto assessment scores');
     els.footer = el('div', 'edl-aa-footer');
     var tableRoot = host.querySelector('.edl-aa-table-root');
     tableRoot.appendChild(els.status);
@@ -93,18 +97,22 @@
     learnerHead.scope = 'col';
     row1.appendChild(learnerHead);
 
+    var starts = payload.columns.map(function (c, k) { return k === 0 || payload.columns[k - 1].block_id !== c.block_id; });
+
     var i = 0;
     while (i < payload.columns.length) {
       var blockId = payload.columns[i].block_id;
       var start = i;
       while (i < payload.columns.length && payload.columns[i].block_id === blockId) { i += 1; }
-      var group = el('th', 'edl-aa-group', payload.columns[start].assessment);
+      var group = el('th', 'edl-aa-group');
+      group.appendChild(el('span', 'edl-aa-group-label', payload.columns[start].assessment));
       group.colSpan = i - start;
       group.scope = 'colgroup';
       row1.appendChild(group);
     }
-    payload.columns.forEach(function (c) {
+    payload.columns.forEach(function (c, idx) {
       var th = el('th', 'edl-aa-criterion', c.criterion);
+      if (starts[idx]) { th.classList.add('edl-aa-group-start'); }
       th.scope = 'col';
       row2.appendChild(th);
     });
@@ -121,7 +129,7 @@
       th.appendChild(el('div', 'edl-aa-sub', learner.username));
       th.appendChild(el('div', 'edl-aa-sub', learner.email));
       tr.appendChild(th);
-      learner.cells.forEach(function (cell) {
+      learner.cells.forEach(function (cell, idx) {
         var td = el('td');
         if (cell === null) {
           td.className = 'edl-aa-empty';
@@ -131,6 +139,7 @@
           td.appendChild(el('div', 'edl-aa-pct', cell.percent + '%'));
           td.appendChild(el('div', 'edl-aa-label', demonstrated ? 'Demonstrated' : 'Not Demonstrated'));
         }
+        if (starts[idx]) { td.classList.add('edl-aa-group-start'); }
         tr.appendChild(td);
       });
       body.appendChild(tr);

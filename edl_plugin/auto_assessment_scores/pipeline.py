@@ -31,6 +31,12 @@ def _read_static(name):
     return files("edl_plugin.auto_assessment_scores").joinpath("static", name).read_text(encoding="utf-8")
 
 
+def _course_has_lti_blocks(course_key):
+    """Return True if the course contains at least one ``lti_consumer`` block."""
+    from xmodule.modulestore.django import modulestore  # pylint: disable=import-outside-toplevel
+    return bool(modulestore().get_items(course_key, qualifiers={"category": "lti_consumer"}))
+
+
 class AddAutoAssessmentsTab(PipelineStep):
     """Append the Auto Assessments section for users with course staff access."""
 
@@ -54,6 +60,10 @@ class AddAutoAssessmentsTab(PipelineStep):
         if staff_section is None:
             return
         if any(s.get("section_key") == SECTION_KEY for s in sections):
+            return
+
+        # Like the Open Responses tab, only show the tab for courses that have the content.
+        if not _course_has_lti_blocks(course.id):
             return
 
         # If the template cannot be found, adding the section would break the
