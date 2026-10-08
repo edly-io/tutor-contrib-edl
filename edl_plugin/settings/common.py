@@ -58,3 +58,10 @@ def plugin_settings(settings):
 
     # Percent at or above which a criterion counts as Demonstrated.
     settings.EDL_AUTO_ASSESSMENT_THRESHOLD = getattr(settings, "EDL_AUTO_ASSESSMENT_THRESHOLD", 75)
+
+    # Line item labels left out of the report. "grade" is the overall line item
+    # some launch paths add next to the per-criterion ones, and would show up as
+    # an extra column. Compared case-insensitively against the whole label.
+    settings.EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS = getattr(
+        settings, "EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS", ["grade"]
+    )

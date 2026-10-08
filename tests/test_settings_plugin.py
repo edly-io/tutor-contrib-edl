@@ -50,3 +50,13 @@ def test_threshold_default_and_override():
     settings = _settings(EDL_AUTO_ASSESSMENT_THRESHOLD=80)
     common.plugin_settings(settings)
     assert settings.EDL_AUTO_ASSESSMENT_THRESHOLD == 80
+
+
+def test_excluded_labels_default_and_override():
+    settings = _settings()
+    common.plugin_settings(settings)
+    assert settings.EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS == ["grade"]
+
+    settings = _settings(EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS=["grade", "total"])
+    common.plugin_settings(settings)
+    assert settings.EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS == ["grade", "total"]

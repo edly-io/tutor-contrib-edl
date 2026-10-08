@@ -160,6 +160,36 @@ def test_get_columns_outline_order_and_label_grouping(monkeypatch):
     assert columns[0]["block_id"] == "loc-focus"
 
 
+def test_get_columns_excludes_grade_label_by_default(monkeypatch, settings):
+    settings.EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS = ["grade"]
+    block = _block("lti_consumer", "loc-a", "Listen Actively")
+    only_grade = _block("lti_consumer", "loc-b", "Only Grade")
+    course = _block("course", "course", children=[block, only_grade])
+    cfgs = _Rows([SimpleNamespace(id=1, location="loc-a"), SimpleNamespace(id=2, location="loc-b")])
+    _install(
+        monkeypatch,
+        blocks=course,
+        line_items=[_item(1, 1, "Asks clarifying questions"), _item(2, 1, "Grade "), _item(3, 1, "grade"),
+                    _item(4, 2, "grade")],
+    )
+    monkeypatch.setattr(sys.modules["lti_consumer.models"].LtiConfiguration.objects, "filter", lambda **kw: cfgs)
+
+    columns = data.get_columns("course-key")
+
+    assert [(c["assessment"], c["criterion"]) for c in columns] == [("Listen Actively", "Asks clarifying questions")]
+
+
+def test_get_columns_exclusion_list_is_configurable(monkeypatch, settings):
+    settings.EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS = []
+    block = _block("lti_consumer", "loc-a", "Listen Actively")
+    course = _block("course", "course", children=[block])
+    cfgs = _Rows([SimpleNamespace(id=1, location="loc-a")])
+    _install(monkeypatch, blocks=course, line_items=[_item(1, 1, "Asks"), _item(2, 1, "grade")])
+    monkeypatch.setattr(sys.modules["lti_consumer.models"].LtiConfiguration.objects, "filter", lambda **kw: cfgs)
+
+    assert [c["criterion"] for c in data.get_columns("course-key")] == ["Asks", "grade"]
+
+
 def test_get_columns_no_course_or_no_blocks(monkeypatch):
     _install(monkeypatch, blocks=None)
     assert data.get_columns("k") == []

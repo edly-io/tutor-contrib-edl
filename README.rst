@@ -21,6 +21,10 @@ How it works
 * **Cells**: ``87% (Demonstrated)`` or ``53% (Not Demonstrated)``. Demonstrated at
   or above ``EDL_AUTO_ASSESSMENT_THRESHOLD`` (default 75). Blank means no fully
   graded score.
+* **Excluded labels**: line items whose label is in
+  ``EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS`` (default ``["grade"]``, compared
+  case-insensitively) are left out. ``grade`` is the overall line item some launch
+  paths add next to the per-criterion ones.
 
 Installation
 ------------

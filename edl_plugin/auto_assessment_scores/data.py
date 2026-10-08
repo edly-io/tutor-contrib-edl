@@ -9,6 +9,7 @@ queries, never through the (single, overwritten) block grade.
 
 import uuid
 
+from django.conf import settings
 from django.contrib.auth.models import User  # pylint: disable=imported-auth-user
 from django.db.models import Q
 
@@ -37,11 +38,19 @@ def _lti_blocks_in_outline_order(course):
     return blocks
 
 
+def _excluded_labels():
+    """Return the lower-cased labels to leave out, from ``EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS``."""
+    labels = getattr(settings, "EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS", ["grade"])
+    return {str(label).strip().lower() for label in labels}
+
+
 def get_columns(course_key):
     """
     Return one column per distinct criterion label of each Muzzy Lane block.
 
     Blocks are kept only if their ``LtiConfiguration`` has AGS line items.
+    Line items whose label is in ``EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS`` are
+    ignored, and a block left with none is skipped.
     Line items of one block that share a label share a column. Columns are in
     outline order, then by the smallest line item id of the label.
 
@@ -67,8 +76,11 @@ def get_columns(course_key):
         lti_configuration_id__in=list(config_id_by_location.values())
     ).order_by("id")
 
+    excluded = _excluded_labels()
     items_by_config = {}
     for item in line_items:
+        if item.label.strip().lower() in excluded:
+            continue
         items_by_config.setdefault(item.lti_configuration_id, []).append(item)
 
     columns = []
