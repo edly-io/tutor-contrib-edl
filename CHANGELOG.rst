@@ -14,7 +14,30 @@ Change Log
 Unreleased
 **********
 
-*
+Changed
+=======
+
+* Show the Auto Assessments tab only for courses with LTI blocks.
+* Polish the scores table styling.
+* Show percents with up to 2 decimals (half up) instead of whole numbers.
+  Demonstrated is decided on the displayed value.
+* Build the CSV from plain score values instead of model instances, and load the
+  course tree once per request, to cut memory and time on large courses.
+
+Fixed
+=====
+
+* CSV: also escape cells that start with a tab or carriage return.
+* CI: put the repo root on pytest's path so ``test_settings`` is found.
+
+0.1.1 – 2026-10-08
+**********************************************
+
+Added
+=====
+
+* Leave the overall ``grade`` line item out of the report, configurable through
+  ``EDL_AUTO_ASSESSMENT_EXCLUDED_LABELS``.
 
 0.1.0 – 2026-10-08
 **********************************************
