@@ -38,6 +38,9 @@ class _Rows(list):
     def order_by(self, *fields):
         return _Rows(sorted(self, key=lambda r: getattr(r, fields[0])))
 
+    def values_list(self, *fields):
+        return [tuple(getattr(r, f) for f in fields) for r in self]
+
 
 class _Manager:
     def __init__(self, rows):

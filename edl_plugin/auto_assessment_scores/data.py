@@ -150,14 +150,17 @@ def get_cells(columns, users, threshold):
         wanted.add(external.replace("-", ""))
     scores = scores.filter(user_id__in=wanted)
 
+    # Plain tuples instead of model instances keep memory low on large courses.
     latest = {}
-    for score in scores:
-        user_id = user_by_external.get(_norm(score.user_id))
+    for external_id, line_item_id, given, maximum, timestamp in scores.values_list(
+        "user_id", "line_item_id", "score_given", "score_maximum", "timestamp"
+    ):
+        user_id = user_by_external.get(_norm(external_id))
         if user_id is None:
             continue
-        key = (user_id, score.line_item_id)
-        if key not in latest or score.timestamp > latest[key].timestamp:
-            latest[key] = score
+        key = (user_id, line_item_id)
+        if key not in latest or timestamp > latest[key][2]:
+            latest[key] = (given, maximum, timestamp)
 
     cells = empty
     for index, column in enumerate(columns):
@@ -165,8 +168,8 @@ def get_cells(columns, users, threshold):
             candidates = [latest[(user.id, i)] for i in column["line_item_ids"] if (user.id, i) in latest]
             if not candidates:
                 continue
-            score = max(candidates, key=lambda s: s.timestamp)
-            cells[user.id][index] = report.make_cell(score.score_given, score.score_maximum, threshold)
+            given, maximum, _ = max(candidates, key=lambda s: s[2])
+            cells[user.id][index] = report.make_cell(given, maximum, threshold)
     return cells
 
 

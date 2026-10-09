@@ -28,8 +28,9 @@ def _course_key_for_staff(request, course_id):
     except InvalidKeyError as error:
         raise Http404() from error
 
-    # Raises for users without staff-level access to the course.
-    get_course_with_access(request.user, "staff", course_key, depth=None)
+    # Raises for users without staff-level access to the course. No children are
+    # loaded here because get_columns loads the full course tree itself.
+    get_course_with_access(request.user, "staff", course_key)
     return course_key
 
 
