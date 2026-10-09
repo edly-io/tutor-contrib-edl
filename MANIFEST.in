@@ -3,4 +3,5 @@ include LICENSE.txt
 include README.rst
 include requirements/base.in
 include requirements/constraints.txt
-recursive-include edl_plugin *.html *.png *.gif *.js *.css *.jpg *.jpeg *.svg
+recursive-include edl_plugin/templates *.html
+recursive-include edl_plugin/auto_assessment_scores/static *.js *.css
