@@ -5,24 +5,29 @@ Imports nothing from Django or edx-platform so the logic can be unit tested
 with only the standard library.
 """
 
+from decimal import ROUND_HALF_UP, Decimal
+
 from .constants import STATUS_DEMONSTRATED, STATUS_LABELS, STATUS_NOT_DEMONSTRATED
 
 
 def percent(score_given, score_maximum):
     """
-    Return a whole-number percent, half rounding up, capped at 100.
+    Return the score as a percent of the maximum, at most 2 decimals, capped at 100.
 
-    Returns ``None`` when the score cannot be computed. ``round()`` is not used
-    because it rounds half to even (74.5 would become 74).
+    Rounds half up at the second decimal (66.666 is 66.67, 74.995 is 75).
+    Trailing zeros are dropped, so whole values come back as ``int`` and display
+    as ``75``, not ``75.00``. Decimal keeps float noise out (0.145 of 1 is 14.5,
+    not 14.499999999999998). Returns ``None`` when the score cannot be computed.
     """
     if score_given is None or not score_maximum or score_maximum <= 0:
         return None
-    value = int(score_given * 100 / score_maximum + 0.5)
-    return min(value, 100)
+    value = min(Decimal(str(score_given)) * 100 / Decimal(str(score_maximum)), Decimal(100))
+    value = value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return int(value) if value == value.to_integral_value() else float(value)
 
 
 def status(pct, threshold):
-    """Return the status for a rounded percent."""
+    """Return the status for a percent."""
     return STATUS_DEMONSTRATED if pct >= threshold else STATUS_NOT_DEMONSTRATED
 
 
@@ -42,9 +47,9 @@ def cell_text(cell):
 
 
 def safe(value):
-    """Prefix values a spreadsheet could run as a formula (``=``, ``+``, ``-``, ``@``)."""
+    """Prefix values a spreadsheet could run as a formula (``=``, ``+``, ``-``, ``@``, tab, carriage return)."""
     text = "" if value is None else str(value)
-    return "'" + text if text[:1] in ("=", "+", "-", "@") else text
+    return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
 
 
 def build_rows(report):

@@ -4,10 +4,26 @@ from edl_plugin.auto_assessment_scores import report
 from edl_plugin.auto_assessment_scores.constants import STATUS_DEMONSTRATED, STATUS_NOT_DEMONSTRATED
 
 
-def test_percent_rounds_half_up():
-    assert report.percent(74.5, 100) == 75
-    assert report.percent(74.4, 100) == 74
-    assert report.percent(2, 3) == 67
+def test_percent_keeps_at_most_two_decimals():
+    assert report.percent(74.5, 100) == 74.5
+    assert report.percent(74.4, 100) == 74.4
+    assert report.percent(0.145, 1) == 14.5
+    assert report.percent(15, 20) == 75
+    assert report.percent(2, 3) == 66.67
+    assert report.percent(1, 3) == 33.33
+    assert report.percent(74.995, 100) == 75
+    assert isinstance(report.percent(75.0, 100), int)
+
+
+def test_status_uses_displayed_percent():
+    assert report.status(report.percent(74.9, 100), 75) == STATUS_NOT_DEMONSTRATED
+    assert report.status(report.percent(74.994, 100), 75) == STATUS_NOT_DEMONSTRATED
+    assert report.status(report.percent(74.995, 100), 75) == STATUS_DEMONSTRATED
+    assert report.status(report.percent(75, 100), 75) == STATUS_DEMONSTRATED
+
+
+def test_cell_text_keeps_decimals():
+    assert report.cell_text(report.make_cell(74.5, 100, 75)) == "74.5% (Not Demonstrated)"
 
 
 def test_percent_caps_at_100():
@@ -26,9 +42,9 @@ def test_status_boundary():
     assert report.status(74, 75) == STATUS_NOT_DEMONSTRATED
 
 
-def test_status_uses_rounded_value():
+def test_make_cell_does_not_round_up_to_threshold():
     cell = report.make_cell(74.6, 100, 75)
-    assert cell == {"percent": 75, "status": STATUS_DEMONSTRATED}
+    assert cell == {"percent": 74.6, "status": STATUS_NOT_DEMONSTRATED}
 
 
 def test_make_cell_none_without_usable_score():
@@ -43,7 +59,7 @@ def test_cell_text():
 
 
 def test_safe_prefixes_formula_characters():
-    for char in ("=", "+", "-", "@"):
+    for char in ("=", "+", "-", "@", "\t", "\r"):
         assert report.safe(char + "cmd") == "'" + char + "cmd"
     assert report.safe("Ayesha") == "Ayesha"
     assert report.safe(None) == ""
