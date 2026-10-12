@@ -2,4 +2,5 @@
 -c constraints.txt
 
 Django             # Web application framework
-django-model-utils        # Provides TimeStampedModel abstract base class
+openedx-filters    # InstructorDashboardRenderStarted pipeline step
+web-fragments      # Fragment used to attach the tab's JS and CSS

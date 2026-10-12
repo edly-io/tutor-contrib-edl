@@ -1,0 +1,9 @@
+<%page args="section_data" expression_filter="h"/>
+<%!
+from django.utils.translation import gettext as _
+%>
+<div class="edl-aa" data-csv-url="${section_data['csv_url']}" data-data-url="${section_data.get('data_url', '')}">
+  <p class="edl-aa-intro">${_("Scores for each learning criterion in every auto assessment. Demonstrated means {threshold}% or more.").format(threshold=section_data.get("threshold", 75))}</p>
+  <a class="btn btn-primary edl-aa-download" href="${section_data['csv_url']}">${_("Download all scores (CSV)")}</a>
+  <div class="edl-aa-table-root"></div>
+</div>
