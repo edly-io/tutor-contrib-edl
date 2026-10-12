@@ -14,9 +14,18 @@ views = pytest.importorskip(
 
 COURSE_ID = "course-v1:Org+C+R"
 COLUMNS = [
-    {"block_id": "b1", "assessment": "Listen Actively", "criterion": "C1", "line_item_ids": [1]},
-    {"block_id": "b1", "assessment": "Listen Actively", "criterion": "C2", "line_item_ids": [2]},
-    {"block_id": "b2", "assessment": "Focus on Solutions", "criterion": "C3", "line_item_ids": [3]},
+    {
+        "competency": "Course Title", "block_id": "b1", "assessment": "Listen Actively",
+        "criterion": "C1", "line_item_ids": [1],
+    },
+    {
+        "competency": "Course Title", "block_id": "b1", "assessment": "Listen Actively",
+        "criterion": "C2", "line_item_ids": [2],
+    },
+    {
+        "competency": "Course Title", "block_id": "b2", "assessment": "Focus on Solutions",
+        "criterion": "C3", "line_item_ids": [3],
+    },
 ]
 
 
