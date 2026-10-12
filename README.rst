@@ -16,8 +16,9 @@ How it works
 * **Download**: ``/courses/<course_id>/instructor/auto_assessments/csv``, built in
   the request from ``LtiAgsLineItem`` and ``LtiAgsScore``. Course staff only.
 * **CSV layout**: one row per learner, one column per learning criterion. Row 1
-  repeats the assessment name above each of its criteria, row 2 holds
-  ``Learner, Username, Email`` and the criteria names.
+  repeats the competency (the course title) above each criterion, row 2 the
+  assessment name, and row 3 holds ``Learner, Username, Email`` and the criteria
+  names. The table shows the same three levels as merged headers.
 * **Cells**: ``87% (Demonstrated)`` or ``53% (Not Demonstrated)``. Demonstrated at
   or above ``EDL_AUTO_ASSESSMENT_THRESHOLD`` (default 75). Blank means no fully
   graded score.

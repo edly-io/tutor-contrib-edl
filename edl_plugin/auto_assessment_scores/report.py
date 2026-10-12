@@ -56,14 +56,16 @@ def build_rows(report):
     """
     Return the CSV rows for ``report``.
 
-    ``report`` is ``{"columns": [{"assessment", "criterion"}], "learners":
+    ``report`` is ``{"columns": [{"competency", "assessment", "criterion"}], "learners":
     [{"name", "username", "email", "cells": [cell | None]}]}``.
 
-    Row 1 repeats the assessment name above each of its criteria (a CSV cannot
-    merge cells). Row 2 holds the learner headings and the criteria names.
+    Row 1 repeats the competency (the course title) and row 2 the assessment
+    name above each criterion (a CSV cannot merge cells). Row 3 holds the
+    learner headings and the criteria names.
     """
     columns = report["columns"]
     rows = [
+        ["Competency", "", ""] + [safe(c["competency"]) for c in columns],
         ["Assessment Name", "", ""] + [safe(c["assessment"]) for c in columns],
         ["Learner", "Username", "Email"] + [safe(c["criterion"]) for c in columns],
     ]

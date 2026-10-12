@@ -123,7 +123,7 @@ def test_get_columns_outline_order_and_label_grouping(monkeypatch):
     listen = _block("lti_consumer", "loc-listen", "Listen Actively")
     other = _block("lti_consumer", "loc-other", "Not Muzzy Lane")
     focus = _block("lti_consumer", "loc-focus", "Focus on Solutions")
-    course = _block("course", "course", children=[
+    course = _block("course", "course", "Course Title", children=[
         _block("chapter", "ch", children=[_block("vertical", "v", children=[focus, other, listen])]),
     ])
     _install(
@@ -161,6 +161,8 @@ def test_get_columns_outline_order_and_label_grouping(monkeypatch):
     ]
     assert columns[1]["line_item_ids"] == [10, 12]
     assert columns[0]["block_id"] == "loc-focus"
+    # The course title is the competency of every column.
+    assert {c["competency"] for c in columns} == {"Course Title"}
 
 
 def test_get_columns_excludes_grade_label_by_default(monkeypatch, settings):

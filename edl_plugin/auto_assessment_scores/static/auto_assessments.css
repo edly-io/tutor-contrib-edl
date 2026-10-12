@@ -56,6 +56,14 @@
 
 /* ---- Header hierarchy ---- */
 .edl-aa-table thead th { color: #1f2a37; }
+.edl-aa-competency {
+  background: #d5dce4;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: left !important;
+  white-space: nowrap;
+  border-bottom: 1px solid #c3ccd5 !important;
+}
 .edl-aa-group {
   background: #e9edf2;
   font-size: 14px;
@@ -84,10 +92,12 @@
 /* ---- Assessment boundaries ----
    .edl-aa-group-start is added by JS to the first criterion th and the first
    body td of each assessment. Every group header is a group start. */
+.edl-aa-table .edl-aa-competency,
 .edl-aa-table .edl-aa-group,
 .edl-aa-table .edl-aa-group-start { border-left: 2px solid #5f6b78; }
 /* The first group already sits against the learner column's edge. */
-.edl-aa-table .edl-aa-learner-head + .edl-aa-group,
+.edl-aa-table .edl-aa-learner-head + .edl-aa-competency,
+.edl-aa-table .edl-aa-group:first-child,
 .edl-aa-table .edl-aa-criterion:first-child,
 .edl-aa-table .edl-aa-sticky + .edl-aa-group-start { border-left-color: transparent; }
 

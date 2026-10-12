@@ -54,7 +54,11 @@ def get_columns(course_key):
     Line items of one block that share a label share a column. Columns are in
     outline order, then by the smallest line item id of the label.
 
-    Returns ``[{"block_id", "assessment", "criterion", "line_item_ids"}]``.
+    Every column carries the course display name as its ``competency``: in
+    this program the course is the competency, the subsection the sub
+    competency and the criterion the sub sub competency.
+
+    Returns ``[{"competency", "block_id", "assessment", "criterion", "line_item_ids"}]``.
     """
     # Imported here so the module loads (and unit tests run) outside edx-platform.
     from lti_consumer.models import LtiAgsLineItem, LtiConfiguration  # pylint: disable=import-outside-toplevel
@@ -83,6 +87,7 @@ def get_columns(course_key):
             continue
         items_by_config.setdefault(item.lti_configuration_id, []).append(item)
 
+    competency = course.display_name or ""
     columns = []
     for block in blocks:
         items = items_by_config.get(config_id_by_location.get(str(block.location)), [])
@@ -91,6 +96,7 @@ def get_columns(course_key):
             by_label.setdefault(item.label, []).append(item.id)
         for label, ids in by_label.items():
             columns.append({
+                "competency": competency,
                 "block_id": str(block.location),
                 "assessment": block.display_name or "",
                 "criterion": label,

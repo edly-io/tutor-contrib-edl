@@ -68,9 +68,9 @@ def test_safe_prefixes_formula_characters():
 def test_build_rows_layout():
     data = {
         "columns": [
-            {"assessment": "Listen Actively", "criterion": "Asks clarifying questions"},
-            {"assessment": "Listen Actively", "criterion": "Paraphrases speakers concerns"},
-            {"assessment": "Focus on Solutions", "criterion": "Identify a set of 3-5 possible solutions"},
+            {"competency": "Communication", "assessment": "Listen Actively", "criterion": "Asks clarifying questions"},
+            {"competency": "Communication", "assessment": "Listen Actively", "criterion": "Paraphrases speakers concerns"},
+            {"competency": "Communication", "assessment": "Focus on Solutions", "criterion": "Identify a set of 3-5 possible solutions"},
         ],
         "learners": [
             {
@@ -84,13 +84,14 @@ def test_build_rows_layout():
         ],
     }
     rows = report.build_rows(data)
-    assert rows[0] == ["Assessment Name", "", "", "Listen Actively", "Listen Actively", "Focus on Solutions"]
-    assert rows[1] == [
+    assert rows[0] == ["Competency", "", "", "Communication", "Communication", "Communication"]
+    assert rows[1] == ["Assessment Name", "", "", "Listen Actively", "Listen Actively", "Focus on Solutions"]
+    assert rows[2] == [
         "Learner", "Username", "Email",
         "Asks clarifying questions", "Paraphrases speakers concerns", "Identify a set of 3-5 possible solutions",
     ]
-    assert rows[2] == [
+    assert rows[3] == [
         "Ayesha Khan", "ayesha.k", "ayesha.khan@example.com",
         "87% (Demonstrated)", "53% (Not Demonstrated)", "",
     ]
-    assert len(rows) == 3
+    assert len(rows) == 4

@@ -99,7 +99,7 @@ def auto_assessment_scores_data(request, course_id):
     return JsonResponse({
         "assessments": assessments,
         "columns": [
-            {"block_id": c["block_id"], "assessment": c["assessment"], "criterion": c["criterion"]}
+            {"competency": c["competency"], "block_id": c["block_id"], "assessment": c["assessment"], "criterion": c["criterion"]}
             for c in columns
         ],
         "learners": [data.learner_row(user, cells[user.id]) for user in page_users],

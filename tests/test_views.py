@@ -15,7 +15,7 @@ views = pytest.importorskip(
 
 COURSE_ID = "course-v1:Org+C+R"
 REPORT = {
-    "columns": [{"assessment": "Listen Actively", "criterion": "Asks clarifying questions"}],
+    "columns": [{"competency": "Communication", "assessment": "Listen Actively", "criterion": "Asks clarifying questions"}],
     "learners": [{
         "name": "=Evil", "username": "u1", "email": "u1@example.com",
         "cells": [{"percent": 87, "status": "demonstrated"}],
@@ -44,9 +44,10 @@ def test_csv_download():
     assert response["Content-Disposition"].startswith('attachment; filename="auto_assessment_scores_')
     assert response["Content-Disposition"].endswith('.csv"')
     rows = list(csv.reader(io.StringIO(response.content.decode())))
-    assert rows[0] == ["Assessment Name", "", "", "Listen Actively"]
-    assert rows[1] == ["Learner", "Username", "Email", "Asks clarifying questions"]
-    assert rows[2] == ["'=Evil", "u1", "u1@example.com", "87% (Demonstrated)"]
+    assert rows[0] == ["Competency", "", "", "Communication"]
+    assert rows[1] == ["Assessment Name", "", "", "Listen Actively"]
+    assert rows[2] == ["Learner", "Username", "Email", "Asks clarifying questions"]
+    assert rows[3] == ["'=Evil", "u1", "u1@example.com", "87% (Demonstrated)"]
 
 
 def test_invalid_course_id_is_404():

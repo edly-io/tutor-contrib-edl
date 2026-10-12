@@ -89,13 +89,26 @@
 
     var table = el('table', 'edl-aa-table');
     var head = el('thead');
+    var rowC = el('tr');
     var row1 = el('tr');
     var row2 = el('tr');
 
     var learnerHead = el('th', 'edl-aa-sticky edl-aa-learner-head', 'Learner');
-    learnerHead.rowSpan = 2;
+    learnerHead.rowSpan = 3;
     learnerHead.scope = 'col';
-    row1.appendChild(learnerHead);
+    rowC.appendChild(learnerHead);
+
+    var j = 0;
+    while (j < payload.columns.length) {
+      var competency = payload.columns[j].competency;
+      var cStart = j;
+      while (j < payload.columns.length && payload.columns[j].competency === competency) { j += 1; }
+      var comp = el('th', 'edl-aa-competency');
+      comp.appendChild(el('span', 'edl-aa-group-label', competency));
+      comp.colSpan = j - cStart;
+      comp.scope = 'colgroup';
+      rowC.appendChild(comp);
+    }
 
     var starts = payload.columns.map(function (c, k) { return k === 0 || payload.columns[k - 1].block_id !== c.block_id; });
 
@@ -116,6 +129,7 @@
       th.scope = 'col';
       row2.appendChild(th);
     });
+    head.appendChild(rowC);
     head.appendChild(row1);
     head.appendChild(row2);
     table.appendChild(head);
