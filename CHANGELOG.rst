@@ -17,6 +17,7 @@ Unreleased
 Changed
 =======
 
+* Add a Competency row (the course title) above the assessment name in the table and the CSV. The CSV header is now three rows.
 * Show the Auto Assessments tab only for courses with LTI blocks.
 * Polish the scores table styling.
 * Show percents with up to 2 decimals (half up) instead of whole numbers.
