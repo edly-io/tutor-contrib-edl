@@ -58,15 +58,15 @@
 .edl-aa-table thead th { color: #1f2a37; }
 .edl-aa-competency {
   background: #d5dce4;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
   text-align: left !important;
   white-space: nowrap;
   border-bottom: 1px solid #c3ccd5 !important;
 }
 .edl-aa-group {
   background: #e9edf2;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   text-align: left !important; /* centred labels drift out of view on wide groups */
   white-space: nowrap;
@@ -80,7 +80,7 @@
   font-size: 12px;
   font-weight: 500 !important;
   line-height: 1.35;
-  vertical-align: bottom !important; /* ragged multi-line names line up on the data */
+  vertical-align: middle !important; /* multi-line names stay centred in the cell, text stays left */
   overflow-wrap: break-word;
   hyphens: auto;
   border-bottom: 1px solid #c3ccd5 !important;
@@ -90,7 +90,7 @@
 .edl-aa-group-label { display: inline-block; position: sticky; left: 250px; }
 
 /* ---- Assessment boundaries ----
-   .edl-aa-group-start is added by JS to the "Date taken" th and td that start
+   .edl-aa-group-start is added by JS to the "Attempt Date" th and td that start
    each assessment. Every group header is a group start. */
 .edl-aa-table .edl-aa-competency,
 .edl-aa-table .edl-aa-group,
@@ -115,7 +115,7 @@
   /* hard edge + soft shadow, so scrolled content clearly passes underneath */
   box-shadow: 2px 0 0 #5f6b78, 6px 0 8px -4px rgba(31, 42, 55, 0.18);
 }
-thead .edl-aa-sticky { background: #e9edf2; z-index: 2; vertical-align: bottom; font-size: 13px; font-weight: 700; }
+thead .edl-aa-sticky { background: #e9edf2; z-index: 2; vertical-align: middle; font-size: 13px; font-weight: 700; }
 .edl-aa-learner strong { display: block; font-weight: 600; }
 .edl-aa-sub { color: #5f5f5f; font-size: 12px; font-weight: normal; overflow-wrap: anywhere; }
 
@@ -126,11 +126,11 @@ thead .edl-aa-sticky { background: #e9edf2; z-index: 2; vertical-align: bottom; 
 .edl-aa-demonstrated { background: #e4f5e8; color: #14532d; }          /* 8.0:1 */
 .edl-aa-not-demonstrated { background: #fdf0d5; color: #7a4a00; }      /* 6.6:1 */
 .edl-aa-empty { background: #f6f7f9; color: #5f6b76; }                 /* 5.1:1 */
-/* Say "No score" instead of leaving a hole that looks like a rendering bug. */
-.edl-aa-table td.edl-aa-empty::after { content: "No score"; font-size: 12px; }
+/* Say "No Attempt Yet" instead of leaving a hole that looks like a rendering bug. */
+.edl-aa-table td.edl-aa-empty::after { content: "No Attempt Yet"; font-size: 12px; }
 
-/* ---- Date taken column (first column of every assessment) ---- */
-.edl-aa-table .edl-aa-date-head { background: #e9edf2; font-size: 12px; font-weight: 600; vertical-align: bottom; white-space: nowrap; border-bottom: 1px solid #c3ccd5 !important; }
+/* ---- Attempt Date column (first column of every assessment) ---- */
+.edl-aa-table .edl-aa-date-head { background: #e9edf2; font-size: 12px; font-weight: 600; vertical-align: middle; white-space: nowrap; border-bottom: 1px solid #c3ccd5 !important; }
 .edl-aa-table td.edl-aa-date { background: #f3f5f8; color: #1f2a37; min-width: 96px; white-space: nowrap; border-right: 2px solid #c3ccd5; font-variant-numeric: tabular-nums; }
 .edl-aa-date-text { font-size: 13px; }
 .edl-aa-date-note { font-size: 11px; color: #5f6b78; margin-top: 2px; }

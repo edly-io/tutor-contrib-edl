@@ -80,6 +80,24 @@ def test_format_date_naive_is_treated_as_utc():
     assert report.format_date(datetime(2026, 1, 5, 0, 0)) == "01/05/2026"
 
 
+def test_format_date_in_browser_zone_moves_the_day():
+    late_utc = datetime(2026, 10, 15, 3, 30, tzinfo=timezone.utc)
+    assert report.format_date(late_utc, "UTC") == "10/15/2026"
+    assert report.format_date(late_utc, "Pacific/Honolulu") == "10/14/2026"
+    assert report.format_date(late_utc, "Asia/Karachi") == "10/15/2026"
+    assert report.format_date(datetime(2026, 10, 15, 20, 0, tzinfo=timezone.utc), "Asia/Karachi") == "10/16/2026"
+
+
+def test_format_date_naive_value_with_zone_is_read_as_utc():
+    assert report.format_date(datetime(2026, 10, 15, 3, 30), "Pacific/Honolulu") == "10/14/2026"
+
+
+def test_format_date_unknown_or_empty_zone_falls_back_to_utc():
+    value = datetime(2026, 10, 15, 3, 30, tzinfo=timezone.utc)
+    for bad in (None, "", "Not/AZone", "../etc/passwd", "x" * 200, 5):
+        assert report.format_date(value, bad) == "10/15/2026"
+
+
 def test_format_date_none_is_empty():
     assert report.format_date(None) == ""
 
@@ -132,8 +150,8 @@ def test_build_rows_layout():
     ]
     assert rows[2] == [
         "Learner", "Username", "Email",
-        "Date taken", "Asks clarifying questions", "Paraphrases speakers concerns",
-        "Date taken", "Identify a set of 3-5 possible solutions",
+        "Attempt Date", "Asks clarifying questions", "Paraphrases speakers concerns",
+        "Attempt Date", "Identify a set of 3-5 possible solutions",
     ]
     assert rows[3] == [
         "Ayesha Khan", "ayesha.k", "ayesha.khan@example.com",

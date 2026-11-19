@@ -190,12 +190,13 @@ def get_cells(columns, users, threshold):
     return cells, dates
 
 
-def learner_row(user, cells, dates=None):
+def learner_row(user, cells, dates=None, tz=None):
     """
     Return the report row for ``user``.
 
     ``dates`` is ``{block_id: datetime}`` from ``get_cells``. It becomes
-    ``{block_id: {"date": "MM/DD/YYYY", "note": ""}}`` in the row.
+    ``{block_id: {"date": "MM/DD/YYYY", "note": ""}}`` in the row, with each
+    date written in the zone named ``tz`` (UTC if empty or unknown).
     """
     profile = getattr(user, "profile", None)
     name = profile.name if profile is not None and profile.name else user.username
@@ -205,17 +206,17 @@ def learner_row(user, cells, dates=None):
         "email": user.email,
         "cells": cells,
         "dates": {
-            block_id: report.date_entry(report.format_date(value)) for block_id, value in (dates or {}).items()
+            block_id: report.date_entry(report.format_date(value, tz)) for block_id, value in (dates or {}).items()
         },
     }
 
 
-def build_report(course_key, threshold):
+def build_report(course_key, threshold, tz=None):
     """Return ``{"columns": [...], "learners": [...]}`` for every active enrollee."""
     columns = get_columns(course_key)
     users = list(learners_queryset(course_key))
     cells, dates = get_cells(columns, users, threshold)
     return {
         "columns": columns,
-        "learners": [learner_row(user, cells[user.id], dates[user.id]) for user in users],
+        "learners": [learner_row(user, cells[user.id], dates[user.id], tz) for user in users],
     }

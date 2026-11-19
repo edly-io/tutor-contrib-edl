@@ -7,6 +7,7 @@ with only the standard library.
 
 from datetime import timezone
 from decimal import ROUND_HALF_UP, Decimal
+from zoneinfo import ZoneInfo
 
 from .constants import STATUS_DEMONSTRATED, STATUS_LABELS, STATUS_NOT_DEMONSTRATED
 
@@ -53,13 +54,27 @@ def safe(value):
     return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
 
 
-def format_date(value):
-    """Return ``value`` as ``MM/DD/YYYY`` in UTC, or ``""`` for ``None``. Naive datetimes are treated as UTC."""
+def resolve_zone(name):
+    """Return the tzinfo for an IANA zone name from the browser, or UTC if it is empty or unknown."""
+    if name and isinstance(name, str) and len(name) <= 64:
+        try:
+            return ZoneInfo(name)
+        except (KeyError, ValueError, OSError):
+            pass
+    return timezone.utc
+
+
+def format_date(value, tz=None):
+    """
+    Return ``value`` as ``MM/DD/YYYY`` in the zone named ``tz`` (an IANA name), or ``""`` for ``None``.
+
+    An empty or unknown ``tz`` means UTC. Naive datetimes are treated as UTC.
+    """
     if value is None:
         return ""
-    if value.tzinfo is not None:
-        value = value.astimezone(timezone.utc)
-    return value.strftime("%m/%d/%Y")
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(resolve_zone(tz)).strftime("%m/%d/%Y")
 
 
 def date_entry(date_text, note=""):
@@ -80,7 +95,7 @@ def build_rows(report):
     learner headings and the criteria names.
 
     Each assessment (a run of columns with the same ``block_id``) starts with a
-    ``Date taken`` column. A learner who has not taken the assessment gets an
+    ``Attempt Date`` column. A learner who has not taken the assessment gets an
     empty cell there. The date note (``learner["dates"][block_id]["note"]``) is
     shown on screen only and is never written to the CSV.
     """
@@ -95,7 +110,7 @@ def build_rows(report):
         if index == 0 or column["block_id"] != previous_block:
             row1.append(safe(column["competency"]))
             row2.append(safe(column["assessment"]))
-            row3.append("Date taken")
+            row3.append("Attempt Date")
             layout.append(("date", column["block_id"]))
         previous_block = column["block_id"]
         row1.append(safe(column["competency"]))

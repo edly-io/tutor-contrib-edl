@@ -17,11 +17,13 @@ Unreleased
 Added
 =====
 
-* Add a "Date taken" column (MM/DD/YYYY, UTC) as the first column of every assessment in the Auto Assessments table and CSV.
+* Add an "Attempt Date" column (MM/DD/YYYY, in the viewer's browser time zone) as the first column of every assessment in the Auto Assessments table and CSV.
 
 Changed
 =======
 
+* Write the Attempt Date in the viewer's browser time zone, on screen and in the CSV. The browser sends its time zone as ``tz`` and an unknown or missing value falls back to UTC.
+* Show "No Attempt Yet" instead of "No score" in empty cells, make the criterion headings vertically centred, and enlarge the first two header rows.
 * Add a Competency row (the course title) above the assessment name in the table and the CSV. The CSV header is now three rows.
 * Show the Auto Assessments tab only for courses with LTI blocks.
 * Polish the scores table styling.

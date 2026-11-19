@@ -346,6 +346,12 @@ def test_learner_row_formats_dates_as_entries():
     assert data.learner_row(user, [])["dates"] == {}
 
 
+def test_learner_row_writes_dates_in_the_browser_zone():
+    user = SimpleNamespace(username="u", email="u@x.com", profile=None)
+    row = data.learner_row(user, [], {"b": datetime(2026, 10, 15, 3, 30)}, "Pacific/Honolulu")
+    assert row["dates"] == {"b": {"date": "10/14/2026", "note": ""}}
+
+
 @pytest.mark.parametrize("value", [uuid.uuid4(), "not-a-uuid"])
 def test_norm_is_stable(value):
     assert data._norm(value) == data._norm(data._norm(value))  # pylint: disable=protected-access

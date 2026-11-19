@@ -37,7 +37,7 @@ def _request():
 def _patch(monkeypatch, settings):
     settings.EDL_AUTO_ASSESSMENT_THRESHOLD = 75
     monkeypatch.setattr(views, "get_course_with_access", lambda *a, **k: None)
-    monkeypatch.setattr(views.data, "build_report", lambda course_key, threshold: REPORT)
+    monkeypatch.setattr(views.data, "build_report", lambda course_key, threshold, tz=None: REPORT)
 
 
 def test_csv_download():
@@ -50,7 +50,7 @@ def test_csv_download():
     rows = list(csv.reader(io.StringIO(response.content.decode())))
     assert rows[0] == ["Competency", "", "", "Communication", "Communication"]
     assert rows[1] == ["Assessment Name", "", "", "Listen Actively", "Listen Actively"]
-    assert rows[2] == ["Learner", "Username", "Email", "Date taken", "Asks clarifying questions"]
+    assert rows[2] == ["Learner", "Username", "Email", "Attempt Date", "Asks clarifying questions"]
     assert rows[3] == ["'=Evil", "u1", "u1@example.com", "10/14/2026", "87% (Demonstrated)"]
 
 
