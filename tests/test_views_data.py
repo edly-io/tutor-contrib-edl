@@ -1,6 +1,7 @@
 """Tests for the paged JSON endpoint with data and access checks monkeypatched."""
 
 import json
+from datetime import datetime
 from types import SimpleNamespace
 
 import pytest
@@ -65,7 +66,9 @@ def _patch(monkeypatch, settings):
     def get_cells(columns, page_users, threshold):
         calls["columns"] = columns
         calls["page_users"] = page_users
-        return {u.id: [None] * len(columns) for u in page_users}
+        dates = {u.id: {"b1": datetime(2026, 10, 14, 23, 30)} for u in page_users if u.id % 2}
+        dates.update({u.id: {} for u in page_users if not u.id % 2})
+        return {u.id: [None] * len(columns) for u in page_users}, dates
 
     monkeypatch.setattr(views, "get_course_with_access", lambda *a, **k: None)
     monkeypatch.setattr(views.data, "get_columns", lambda key: COLUMNS)
@@ -81,6 +84,12 @@ def test_first_page_defaults():
     assert body["learners"][0]["username"] == "u01"
     assert body["threshold"] == 75
     assert len(body["columns"]) == 3
+
+
+def test_learners_carry_dates_for_attempted_blocks_only():
+    learners = _get()["learners"]
+    assert learners[0]["dates"] == {"b1": {"date": "10/14/2026", "note": ""}}   # u01 attempted b1
+    assert learners[1]["dates"] == {}                                           # u02 attempted nothing
 
 
 def test_last_page_is_partial():

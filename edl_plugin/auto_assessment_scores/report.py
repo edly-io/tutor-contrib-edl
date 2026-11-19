@@ -5,7 +5,9 @@ Imports nothing from Django or edx-platform so the logic can be unit tested
 with only the standard library.
 """
 
+from datetime import timezone
 from decimal import ROUND_HALF_UP, Decimal
+from zoneinfo import ZoneInfo
 
 from .constants import STATUS_DEMONSTRATED, STATUS_LABELS, STATUS_NOT_DEMONSTRATED
 
@@ -52,26 +54,77 @@ def safe(value):
     return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
 
 
+def resolve_zone(name):
+    """Return the tzinfo for an IANA zone name from the browser, or UTC if it is empty or unknown."""
+    if name and isinstance(name, str) and len(name) <= 64:
+        try:
+            return ZoneInfo(name)
+        except (KeyError, ValueError, OSError):
+            pass
+    return timezone.utc
+
+
+def format_date(value, tz=None):
+    """
+    Return ``value`` as ``MM/DD/YYYY`` in the zone named ``tz`` (an IANA name), or ``""`` for ``None``.
+
+    An empty or unknown ``tz`` means UTC. Naive datetimes are treated as UTC.
+    """
+    if value is None:
+        return ""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(resolve_zone(tz)).strftime("%m/%d/%Y")
+
+
+def date_entry(date_text, note=""):
+    """Return the per-assessment date info sent to the browser: ``{"date", "note"}``."""
+    return {"date": date_text, "note": note}
+
+
 def build_rows(report):
     """
     Return the CSV rows for ``report``.
 
-    ``report`` is ``{"columns": [{"competency", "assessment", "criterion"}], "learners":
-    [{"name", "username", "email", "cells": [cell | None]}]}``.
+    ``report`` is ``{"columns": [{"competency", "block_id", "assessment", "criterion"}],
+    "learners": [{"name", "username", "email", "cells": [cell | None],
+    "dates": {block_id: {"date", "note"}}}]}``.
 
     Row 1 repeats the competency (the course title) and row 2 the assessment
     name above each criterion (a CSV cannot merge cells). Row 3 holds the
     learner headings and the criteria names.
+
+    Each assessment (a run of columns with the same ``block_id``) starts with a
+    ``Attempt Date`` column. A learner who has not taken the assessment gets an
+    empty cell there. The date note (``learner["dates"][block_id]["note"]``) is
+    shown on screen only and is never written to the CSV.
     """
     columns = report["columns"]
-    rows = [
-        ["Competency", "", ""] + [safe(c["competency"]) for c in columns],
-        ["Assessment Name", "", ""] + [safe(c["assessment"]) for c in columns],
-        ["Learner", "Username", "Email"] + [safe(c["criterion"]) for c in columns],
-    ]
+    row1 = ["Competency", "", ""]
+    row2 = ["Assessment Name", "", ""]
+    row3 = ["Learner", "Username", "Email"]
+    # One entry per output column after the learner columns: ("date", block_id) or ("cell", column index).
+    layout = []
+    previous_block = None
+    for index, column in enumerate(columns):
+        if index == 0 or column["block_id"] != previous_block:
+            row1.append(safe(column["competency"]))
+            row2.append(safe(column["assessment"]))
+            row3.append("Attempt Date")
+            layout.append(("date", column["block_id"]))
+        previous_block = column["block_id"]
+        row1.append(safe(column["competency"]))
+        row2.append(safe(column["assessment"]))
+        row3.append(safe(column["criterion"]))
+        layout.append(("cell", index))
+    rows = [row1, row2, row3]
     for learner in report["learners"]:
-        rows.append(
-            [safe(learner["name"]), safe(learner["username"]), safe(learner["email"])]
-            + [cell_text(c) for c in learner["cells"]]
-        )
+        row = [safe(learner["name"]), safe(learner["username"]), safe(learner["email"])]
+        dates = learner.get("dates") or {}
+        for kind, key in layout:
+            if kind == "date":
+                row.append(dates.get(key, {}).get("date", ""))
+            else:
+                row.append(cell_text(learner["cells"][key]))
+        rows.append(row)
     return rows

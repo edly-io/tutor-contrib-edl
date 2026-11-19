@@ -48,7 +48,10 @@
     bar.appendChild(els.legend);
 
     var download = host.querySelector('.edl-aa-download');
-    if (download) { bar.appendChild(download); }
+    if (download) {
+      download.href = withZone(host.getAttribute('data-csv-url') || download.getAttribute('href'));
+      bar.appendChild(download);
+    }
     host.querySelector('.edl-aa-table-root').appendChild(bar);
 
     els.status = el('div', 'edl-aa-status');
@@ -98,6 +101,8 @@
     learnerHead.scope = 'col';
     rowC.appendChild(learnerHead);
 
+    var starts = payload.columns.map(function (c, k) { return k === 0 || payload.columns[k - 1].block_id !== c.block_id; });
+
     var j = 0;
     while (j < payload.columns.length) {
       var competency = payload.columns[j].competency;
@@ -105,12 +110,12 @@
       while (j < payload.columns.length && payload.columns[j].competency === competency) { j += 1; }
       var comp = el('th', 'edl-aa-competency');
       comp.appendChild(el('span', 'edl-aa-group-label', competency));
-      comp.colSpan = j - cStart;
+      // One extra "Attempt Date" column per assessment inside this competency.
+      var assessmentCount = starts.slice(cStart, j).filter(Boolean).length;
+      comp.colSpan = (j - cStart) + assessmentCount;
       comp.scope = 'colgroup';
       rowC.appendChild(comp);
     }
-
-    var starts = payload.columns.map(function (c, k) { return k === 0 || payload.columns[k - 1].block_id !== c.block_id; });
 
     var i = 0;
     while (i < payload.columns.length) {
@@ -119,13 +124,17 @@
       while (i < payload.columns.length && payload.columns[i].block_id === blockId) { i += 1; }
       var group = el('th', 'edl-aa-group');
       group.appendChild(el('span', 'edl-aa-group-label', payload.columns[start].assessment));
-      group.colSpan = i - start;
+      group.colSpan = (i - start) + 1;  // plus the "Attempt Date" column
       group.scope = 'colgroup';
       row1.appendChild(group);
     }
     payload.columns.forEach(function (c, idx) {
+      if (starts[idx]) {
+        var dateHead = el('th', 'edl-aa-date-head edl-aa-group-start', 'Attempt Date');
+        dateHead.scope = 'col';
+        row2.appendChild(dateHead);
+      }
       var th = el('th', 'edl-aa-criterion', c.criterion);
-      if (starts[idx]) { th.classList.add('edl-aa-group-start'); }
       th.scope = 'col';
       row2.appendChild(th);
     });
@@ -144,6 +153,18 @@
       th.appendChild(el('div', 'edl-aa-sub', learner.email));
       tr.appendChild(th);
       learner.cells.forEach(function (cell, idx) {
+        if (starts[idx]) {
+          var dateTd = el('td', 'edl-aa-date edl-aa-group-start');
+          var info = (learner.dates || {})[payload.columns[idx].block_id];
+          if (info && info.date) {
+            dateTd.appendChild(el('div', 'edl-aa-date-text', info.date));
+            if (info.note) { dateTd.appendChild(el('div', 'edl-aa-date-note', info.note)); }
+          } else {
+            dateTd.classList.add('edl-aa-date-none');
+            dateTd.textContent = '-';
+          }
+          tr.appendChild(dateTd);
+        }
         var td = el('td');
         if (cell === null) {
           td.className = 'edl-aa-empty';
@@ -153,7 +174,6 @@
           td.appendChild(el('div', 'edl-aa-pct', cell.percent + '%'));
           td.appendChild(el('div', 'edl-aa-label', demonstrated ? 'Demonstrated' : 'Not Demonstrated'));
         }
-        if (starts[idx]) { td.classList.add('edl-aa-group-start'); }
         tr.appendChild(td);
       });
       body.appendChild(tr);
@@ -203,6 +223,17 @@
     els.footer.appendChild(pager);
   }
 
+  // The viewer's IANA time zone (for example "America/Chicago"). The server writes every date in it.
+  function browserZone() {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; }
+  }
+
+  function withZone(url) {
+    var zone = browserZone();
+    if (!url || !zone) { return url; }
+    return url + (url.indexOf('?') === -1 ? '?' : '&') + 'tz=' + encodeURIComponent(zone);
+  }
+
   function fetchPage() {
     var host = root();
     if (!host) { return; }
@@ -212,7 +243,7 @@
     state.requestId += 1;
     var requestId = state.requestId;
     var params = new URLSearchParams({
-      page: state.page, page_size: state.pageSize, q: state.q, assessment: state.assessment
+      page: state.page, page_size: state.pageSize, q: state.q, assessment: state.assessment, tz: browserZone()
     });
     els.status.textContent = 'Loading...';
 
