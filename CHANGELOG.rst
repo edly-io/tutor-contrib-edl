@@ -14,6 +14,11 @@ Change Log
 Unreleased
 **********
 
+Added
+=====
+
+* Add a "Date taken" column (MM/DD/YYYY, UTC) as the first column of every assessment in the Auto Assessments table and CSV.
+
 Changed
 =======
 

@@ -94,7 +94,7 @@ def auto_assessment_scores_data(request, course_id):
     num_pages = max(1, -(-total // page_size))
     page = min(page, num_pages)
     page_users = list(learners[(page - 1) * page_size:page * page_size])
-    cells = data.get_cells(columns, page_users, threshold)
+    cells, dates = data.get_cells(columns, page_users, threshold)
 
     return JsonResponse({
         "assessments": assessments,
@@ -107,7 +107,7 @@ def auto_assessment_scores_data(request, course_id):
             }
             for c in columns
         ],
-        "learners": [data.learner_row(user, cells[user.id]) for user in page_users],
+        "learners": [data.learner_row(user, cells[user.id], dates[user.id]) for user in page_users],
         "page": page,
         "page_size": page_size,
         "total": total,

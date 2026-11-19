@@ -228,7 +228,7 @@ def test_get_cells_scores_status_and_blanks(monkeypatch):
             _score(10, ext2, 90, 100, minutes=5),   # later attempt for the same label wins
         ],
     )
-    cells = data.get_cells(COLUMNS, _users(1, 2, 3), 75)
+    cells, _dates = data.get_cells(COLUMNS, _users(1, 2, 3), 75)
 
     assert cells[1] == [
         {"percent": 87, "status": "demonstrated"},
@@ -249,7 +249,10 @@ def test_get_cells_ignores_ungraded_and_bad_maximum(monkeypatch):
             _score(11, ext, 5, 0),
         ],
     )
-    assert data.get_cells(COLUMNS, _users(1), 75)[1] == [None, None]
+    cells, dates = data.get_cells(COLUMNS, _users(1), 75)
+    assert cells[1] == [None, None]
+    # The fully graded score with a zero maximum still shows the learner took the assessment.
+    assert dates[1] == {"b": BASE}
 
 
 def test_get_cells_matches_external_id_without_hyphens(monkeypatch):
@@ -259,13 +262,72 @@ def test_get_cells_matches_external_id_without_hyphens(monkeypatch):
         external_ids=[SimpleNamespace(user_id=1, external_user_id=ext)],
         scores=[_score(10, ext.hex, 80, 100)],
     )
-    assert data.get_cells(COLUMNS, _users(1), 75)[1][0] == {"percent": 80, "status": "demonstrated"}
+    assert data.get_cells(COLUMNS, _users(1), 75)[0][1][0] == {"percent": 80, "status": "demonstrated"}
 
 
 def test_get_cells_no_columns_or_users(monkeypatch):
     _install(monkeypatch)
-    assert data.get_cells([], _users(1), 75) == {1: []}
-    assert data.get_cells(COLUMNS, [], 75) == {}
+    assert data.get_cells([], _users(1), 75) == ({1: []}, {1: {}})
+    assert data.get_cells(COLUMNS, [], 75) == ({}, {})
+
+
+def test_get_cells_without_external_ids_has_empty_dates(monkeypatch):
+    _install(monkeypatch, scores=[_score(10, uuid.uuid4(), 80, 100)])
+    cells, dates = data.get_cells(COLUMNS, _users(1, 2), 75)
+    assert cells == {1: [None, None], 2: [None, None]}
+    assert dates == {1: {}, 2: {}}
+
+
+def test_get_cells_no_scores_has_empty_dates(monkeypatch):
+    ext = uuid.uuid4()
+    _install(monkeypatch, external_ids=[SimpleNamespace(user_id=1, external_user_id=ext)])
+    cells, dates = data.get_cells(COLUMNS, _users(1), 75)
+    assert cells[1] == [None, None]
+    assert dates == {1: {}}
+
+
+def test_get_cells_date_is_latest_score_of_the_block(monkeypatch):
+    ext = uuid.uuid4()
+    _install(
+        monkeypatch,
+        external_ids=[SimpleNamespace(user_id=1, external_user_id=ext)],
+        scores=[
+            _score(10, ext, 80, 100, minutes=0),
+            _score(11, ext, 60, 100, minutes=7),   # the later of the block's two criteria
+        ],
+    )
+    _cells, dates = data.get_cells(COLUMNS, _users(1), 75)
+    assert dates[1] == {"b": BASE + timedelta(minutes=7)}
+
+
+def test_get_cells_block_not_attempted_has_no_date_key(monkeypatch):
+    ext = uuid.uuid4()
+    columns = COLUMNS + [{"block_id": "b2", "assessment": "B", "criterion": "C3", "line_item_ids": [20]}]
+    _install(
+        monkeypatch,
+        external_ids=[SimpleNamespace(user_id=1, external_user_id=ext)],
+        scores=[_score(10, ext, 80, 100, minutes=3)],
+    )
+    cells, dates = data.get_cells(columns, _users(1), 75)
+    assert cells[1][2] is None
+    assert dates[1] == {"b": BASE + timedelta(minutes=3)}
+    assert "b2" not in dates[1]
+
+
+def test_get_cells_date_follows_the_winning_score_of_a_shared_label(monkeypatch):
+    ext = uuid.uuid4()
+    column = [{"block_id": "b", "assessment": "A", "criterion": "C1", "line_item_ids": [10, 12]}]
+    _install(
+        monkeypatch,
+        external_ids=[SimpleNamespace(user_id=1, external_user_id=ext)],
+        scores=[
+            _score(10, ext, 40, 100, minutes=0),
+            _score(12, ext, 90, 100, minutes=5),   # the retake wins the cell and the date
+        ],
+    )
+    cells, dates = data.get_cells(column, _users(1), 75)
+    assert cells[1] == [{"percent": 90, "status": "demonstrated"}]
+    assert dates[1] == {"b": BASE + timedelta(minutes=5)}
 
 
 def test_learner_row_name_fallback():
@@ -275,6 +337,13 @@ def test_learner_row_name_fallback():
     assert data.learner_row(with_name, [])["name"] == "Full Name"
     assert data.learner_row(no_name, [])["name"] == "u2"
     assert data.learner_row(no_profile, [])["name"] == "u3"
+
+
+def test_learner_row_formats_dates_as_entries():
+    user = SimpleNamespace(username="u", email="e@x.com", profile=SimpleNamespace(name="N"))
+    row = data.learner_row(user, [], {"b": datetime(2026, 10, 14, 9, 30)})
+    assert row["dates"] == {"b": {"date": "10/14/2026", "note": ""}}
+    assert data.learner_row(user, [])["dates"] == {}
 
 
 @pytest.mark.parametrize("value", [uuid.uuid4(), "not-a-uuid"])
