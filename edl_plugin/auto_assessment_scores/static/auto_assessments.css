@@ -1,105 +1,149 @@
 /* Auto Assessments tab (instructor dashboard). All selectors are scoped to .edl-aa. */
 
-.edl-aa { margin: 16px 0; }
-.edl-aa-intro { margin-bottom: 12px; }
+.edl-aa { margin: 16px 0; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }
 
-/* ---- Filter bar ---- */
+/* ---- Heading ---- */
+.edl-aa-title { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.3; color: #111827; }
+.edl-aa-intro { margin: 4px 0 16px; font-size: 14px; line-height: 1.4; color: #374151; }
+
+/* Visually hidden, still read by screen readers. */
+.edl-aa .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Toolbar: search, assessment, Download CSV in one row ---- */
 .edl-aa-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 12px; }
 .edl-aa-search,
 .edl-aa-assessment,
 .edl-aa-size {
   box-sizing: border-box;
-  height: 36px;
-  border: 1px solid #8a94a0; /* 3:1 against white, needed for input boundaries */
-  border-radius: 4px;
+  height: 40px;
+  border: 1px solid #9CA3AF;
+  border-radius: 6px;
   background: #fff;
-  color: #1f2a37;
+  color: #111827;
+  font-family: inherit;
+  font-size: 14px;
 }
-.edl-aa-search { flex: 1 1 260px; max-width: 360px; min-width: 0; padding: 6px 10px; }
-.edl-aa-assessment { flex: 0 1 280px; min-width: 0; padding: 6px 8px; }
-.edl-aa-size { padding: 4px 8px; }
-/* The dashboard's own input/select/button rules can out-rank a single class, so pin the shared height by id. */
+.edl-aa-search { flex: 1 1 320px; max-width: 420px; min-width: 0; padding: 0 12px; }
+.edl-aa-assessment { flex: 0 1 auto; min-width: 300px; max-width: 100%; padding: 0 8px; }
+.edl-aa-size { padding: 0 8px; }
+.edl-aa-clear {
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: #1D4ED8;
+  font-family: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.edl-aa-clear[hidden] { display: none; }
+
+/* Download CSV button */
+.edl-aa-download {
+  margin-left: auto;
+  box-sizing: border-box;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: #111827;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+}
+/* The dashboard's own input/select/button/link rules can out-rank a single class, so pin the look by id. */
 #auto_assessments .edl-aa-search,
 #auto_assessments .edl-aa-assessment,
 #auto_assessments .edl-aa-size,
 #auto_assessments .edl-aa-download,
-#auto_assessments .edl-aa-page { box-sizing: border-box; height: 36px; margin: 0; }
-#auto_assessments .edl-aa-search { padding: 0 10px; line-height: normal; }
-.edl-aa .edl-aa-download { box-sizing: border-box; height: 36px; display: inline-flex; align-items: center; padding: 0 12px; margin: 0; line-height: 1; }
-.edl-aa-legend { display: inline-flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
-.edl-aa-chip { padding: 2px 10px; border-radius: 12px; font-size: 12px; line-height: 20px; border: 1px solid currentColor; }
-.edl-aa-status { padding: 8px 0; color: #5f5f5f; }
+#auto_assessments .edl-aa-clear,
+#auto_assessments .edl-aa-page { box-sizing: border-box; height: 40px; margin: 0; text-transform: none; text-shadow: none; box-shadow: none; }
+#auto_assessments .edl-aa-search { padding: 0 12px; line-height: normal; }
+#auto_assessments .edl-aa-download { margin-left: auto; background: #111827; background-image: none; color: #fff; border: 0; font-size: 14px; font-weight: 500; text-decoration: none; }
+#auto_assessments .edl-aa-download:hover { color: #fff; text-decoration: none; }
+#auto_assessments .edl-aa-download:focus-visible { outline: 2px solid #2563EB !important; outline-offset: 2px !important; }
+
+.edl-aa-status { padding: 8px 0; color: #4B5563; font-size: 14px; }
 .edl-aa-status:empty { padding: 0; }
+.edl-aa-nomatch { padding: 32px 16px; text-align: center; color: #4B5563; font-size: 14px; }
+.edl-aa-nomatch strong { display: block; margin-bottom: 4px; color: #111827; font-size: 15px; font-weight: 600; }
 
 /* ---- Scroll box ---- */
-.edl-aa-scroll { overflow-x: auto; border: 1px solid #c3ccd5; border-radius: 6px; max-width: 100%; background: #fff; }
-.edl-aa-scroll:focus-visible,
-.edl-aa-search:focus-visible,
-.edl-aa-assessment:focus-visible,
-.edl-aa-size:focus-visible,
-.edl-aa-page:focus-visible { outline: 2px solid #0075b4; outline-offset: 2px; }
+.edl-aa-scroll { overflow-x: auto; border: 1px solid #E5E7EB; border-radius: 8px; max-width: 100%; background: #fff; }
+
+/* Focus ring, scoped so the rest of the dashboard keeps its own. */
+.edl-aa button:focus-visible,
+.edl-aa input:focus-visible,
+.edl-aa select:focus-visible,
+.edl-aa a:focus-visible,
+.edl-aa [tabindex]:focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; }
 
 /* ---- Table base ----
-   Cells carry a LEFT border (not right) so a group's first column can simply
-   swap its left border for the heavier boundary rule. */
-.edl-aa-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-size: 13px; }
+   Fixed layout: the learner (200px) and date (96px) columns are set by <col>,
+   the criterion columns share the rest equally. JS sets an inline min-width so
+   many assessments scroll sideways instead of squeezing the criteria.
+   Cells carry a LEFT border so a group's first column can swap it for the stronger rule. */
+.edl-aa-table { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: 100%; font-size: 13px; }
 .edl-aa-table th,
 .edl-aa-table td {
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: 0;
-  border-bottom: 1px solid #e6eaee;
-  border-left: 1px solid #e6eaee;
+  border-bottom: 1px solid #E5E7EB;
+  border-left: 1px solid #EEF0F3;
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
+  min-width: 0;
 }
 .edl-aa-table tbody tr:last-child > * { border-bottom: 0; }
+.edl-aa-col-learner { width: 200px; }
+.edl-aa-col-date { width: 96px; }
 
-/* ---- Header hierarchy ---- */
-.edl-aa-table thead th { color: #1f2a37; }
-.edl-aa-competency {
-  background: #d5dce4;
-  font-size: 15px;
-  font-weight: 700;
-  text-align: left !important;
-  white-space: nowrap;
-  border-bottom: 1px solid #c3ccd5 !important;
-}
+/* ---- Header ---- */
+.edl-aa-table thead th { background: #fff; color: #374151; }
 .edl-aa-group {
-  background: #e9edf2;
-  font-size: 14px;
-  font-weight: 700;
-  text-align: left !important; /* centred labels drift out of view on wide groups */
-  white-space: nowrap;
-  border-bottom: 1px solid #c3ccd5 !important;
+  padding: 12px 16px !important;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827 !important;
+  overflow-wrap: anywhere;
 }
 .edl-aa-criterion {
-  background: #f3f5f8;
-  width: 160px;
-  min-width: 160px;
-  max-width: 200px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500 !important;
   line-height: 1.35;
-  vertical-align: bottom !important; /* ragged multi-line names line up on the data */
-  overflow-wrap: break-word;
-  hyphens: auto;
-  border-bottom: 1px solid #c3ccd5 !important;
+  vertical-align: bottom !important;
+  overflow-wrap: anywhere;
+  hyphens: none;
+  border-bottom: 1px solid #D1D5DB !important;
 }
-/* Optional: if the group label is wrapped in <span class="edl-aa-group-label">,
-   it stays visible while its group is partly scrolled under the learner column. */
-.edl-aa-group-label { display: inline-block; position: sticky; left: 250px; }
+.edl-aa-date-head { font-size: 13px; font-weight: 500 !important; vertical-align: bottom !important; white-space: nowrap; border-bottom: 1px solid #D1D5DB !important; }
+.edl-aa-table thead tr:first-child > .edl-aa-group { border-bottom: 1px solid #E5E7EB; }
 
 /* ---- Assessment boundaries ----
-   .edl-aa-group-start is added by JS to the first criterion th and the first
-   body td of each assessment. Every group header is a group start. */
-.edl-aa-table .edl-aa-competency,
+   .edl-aa-group-start marks the first cell of each assessment. */
 .edl-aa-table .edl-aa-group,
-.edl-aa-table .edl-aa-group-start { border-left: 2px solid #5f6b78; }
-/* The first group already sits against the learner column's edge. */
-.edl-aa-table .edl-aa-learner-head + .edl-aa-competency,
-.edl-aa-table .edl-aa-group:first-child,
-.edl-aa-table .edl-aa-criterion:first-child,
-.edl-aa-table .edl-aa-sticky + .edl-aa-group-start { border-left-color: transparent; }
+.edl-aa-table .edl-aa-group-start { border-left: 1px solid #D1D5DB; }
+/* The first assessment already sits against the learner column's edge. */
+.edl-aa-table .edl-aa-sticky + .edl-aa-group-start,
+.edl-aa-table .edl-aa-learner-head + .edl-aa-group { border-left-color: transparent; }
 
 /* ---- Sticky learner column ---- */
 .edl-aa-sticky {
@@ -107,60 +151,64 @@
   left: 0;
   z-index: 1;
   background: #fff;
-  color: #1f2a37;
-  width: 220px; /* fixed, so the optional sticky group label knows its offset */
-  min-width: 220px;
-  max-width: 220px;
+  color: #111827;
+  padding: 10px 16px !important;
   border-left: 0 !important;
-  /* hard edge + soft shadow, so scrolled content clearly passes underneath */
-  box-shadow: 2px 0 0 #5f6b78, 6px 0 8px -4px rgba(31, 42, 55, 0.18);
+  border-right: 1px solid #E5E7EB !important;
+  overflow: hidden;
 }
-thead .edl-aa-sticky { background: #e9edf2; z-index: 2; vertical-align: bottom; font-size: 13px; font-weight: 700; }
-.edl-aa-learner strong { display: block; font-weight: 600; }
-.edl-aa-sub { color: #5f5f5f; font-size: 12px; font-weight: normal; overflow-wrap: anywhere; }
+thead .edl-aa-sticky { z-index: 2; vertical-align: bottom; font-size: 13px; font-weight: 600; border-bottom: 1px solid #D1D5DB; }
+.edl-aa-learner strong { display: block; font-size: 14px; font-weight: 600; color: #111827; overflow-wrap: anywhere; }
+.edl-aa-sub { color: #374151; font-size: 13px; font-weight: normal; overflow-wrap: anywhere; }
+.edl-aa-email { color: #4B5563; font-size: 13px; font-weight: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---- Score cells ---- */
-.edl-aa-table td { text-align: center; vertical-align: middle; min-width: 120px; padding: 10px 8px; }
+.edl-aa-table td { text-align: center; height: 68px; }
 .edl-aa-pct { font-size: 15px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.edl-aa-label { font-size: 12px; line-height: 1.3; margin-top: 2px; }
-.edl-aa-demonstrated { background: #e4f5e8; color: #14532d; }          /* 8.0:1 */
-.edl-aa-not-demonstrated { background: #fdf0d5; color: #7a4a00; }      /* 6.6:1 */
-.edl-aa-empty { background: #f6f7f9; color: #5f6b76; }                 /* 5.1:1 */
-/* Say "No score" instead of leaving a hole that looks like a rendering bug. */
-.edl-aa-table td.edl-aa-empty::after { content: "No score"; font-size: 12px; }
+.edl-aa-label { white-space: nowrap; font-size: 12px; line-height: 1.3; margin-top: 2px; }
+.edl-aa-table td.edl-aa-demonstrated { background: #E7F5EC; color: #14532D; }
+.edl-aa-table td.edl-aa-not-demonstrated { background: #FDF1E1; color: #7A3A00; }
+.edl-aa-table td.edl-aa-none { background: none; color: #4B5563; font-size: 13px; }
 
-/* Row hover: a light tint over whatever the cell colour is. Text stays above 5.9:1. */
-.edl-aa-table tbody tr:hover > td { box-shadow: inset 0 0 0 999px rgba(0, 0, 0, 0.05); }
-.edl-aa-table tbody tr:hover > .edl-aa-sticky { background: #f3f7fb; }
+/* ---- Attempt Date column (first column of every assessment) ---- */
+.edl-aa-table td.edl-aa-date { color: #374151; font-size: 13px; background: none; font-variant-numeric: tabular-nums; }
+.edl-aa-date-note { font-size: 12px; color: #4B5563; margin-top: 2px; }
+
+/* Row hover. Status cells keep their tint. */
+.edl-aa-table tbody tr:hover > td:not(.edl-aa-demonstrated):not(.edl-aa-not-demonstrated),
+.edl-aa-table tbody tr:hover > .edl-aa-sticky { background: #F9FAFB; }
 
 /* ---- Footer and pager ---- */
 .edl-aa-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; }
+.edl-aa-info { font-size: 14px; color: #374151; }
 .edl-aa-pager { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
 .edl-aa-page {
   box-sizing: border-box;
-  min-width: 36px;
-  height: 36px;
+  min-width: 40px;
+  height: 40px;
   padding: 0 12px;
-  border: 1px solid #8a94a0;
+  border: 1px solid #9CA3AF;
   background: #fff;
-  color: #1f2a37;
-  border-radius: 4px;
+  color: #111827;
+  font-family: inherit;
+  font-size: 14px;
+  border-radius: 6px;
   cursor: pointer;
 }
-.edl-aa-page:hover:not([disabled]):not(.edl-aa-current) { background: #f3f5f8; }
-.edl-aa-page[disabled] { color: #8a94a0; border-color: #d5dbe2; background: #fff; cursor: default; }
-.edl-aa-current { background: #0075b4; color: #fff; border-color: #0075b4; font-weight: 700; }
+.edl-aa-page:hover:not([disabled]):not(.edl-aa-current) { background: #F9FAFB; }
+.edl-aa-page[disabled] { color: #6B7280; border-color: #E5E7EB; background: #fff; cursor: default; }
+.edl-aa-current { background: #111827; color: #fff; border-color: #111827; font-weight: 700; }
 
 /* ---- Narrow screens ---- */
 @media (max-width: 720px) {
-  .edl-aa-search, .edl-aa-assessment { flex: 1 1 100%; max-width: none; }
-  .edl-aa-legend { margin-left: 0; }
-  .edl-aa-sticky { width: 150px; min-width: 150px; max-width: 150px; }
-  .edl-aa-group-label { left: 180px; }
+  .edl-aa-search { flex: 1 1 100%; max-width: none; }
+  .edl-aa-assessment { flex: 1 1 100%; min-width: 0; }
+  .edl-aa-download { margin-left: 0; }
+  .edl-aa-col-learner { width: 150px; }
   .edl-aa-pager { margin-left: 0; }
 }
 
 @media (forced-colors: active) {
   .edl-aa-table .edl-aa-group, .edl-aa-table .edl-aa-group-start { border-left-color: CanvasText; }
-  .edl-aa-sticky { border-right: 2px solid CanvasText; }
+  .edl-aa-sticky { border-right: 2px solid CanvasText !important; }
 }

@@ -37,9 +37,14 @@ def _course_key_for_staff(request, course_id):
 @login_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def auto_assessment_scores_csv(request, course_id):
-    """Return every auto assessment criterion score for the course as a CSV download."""
+    """
+    Return the auto assessment criterion scores for the course as a CSV download.
+
+    It holds every learner and every criterion. ``tz`` (the browser's IANA time
+    zone) sets the zone the dates are written in, UTC if missing.
+    """
     course_key = _course_key_for_staff(request, course_id)
-    report_data = data.build_report(course_key, settings.EDL_AUTO_ASSESSMENT_THRESHOLD)
+    report_data = data.build_report(course_key, settings.EDL_AUTO_ASSESSMENT_THRESHOLD, _tz_param(request))
 
     response = HttpResponse(content_type="text/csv")
     filename = "auto_assessment_scores_{}_{}.csv".format(slugify(str(course_key)), date.today().isoformat())
@@ -53,6 +58,16 @@ def auto_assessment_scores_csv(request, course_id):
 
 DEFAULT_PAGE_SIZE = 10
 MAX_PAGE_SIZE = 100
+
+
+def _tz_param(request):
+    """Return the browser's IANA time zone name from ``?tz=`` (``""`` if absent). It is validated when used."""
+    return request.GET.get("tz", "").strip()
+
+
+def _filter_params(request):
+    """Return ``(q, assessment)`` from the query string: a search text and a block id, each ``""`` if absent."""
+    return request.GET.get("q", "").strip(), request.GET.get("assessment", "").strip()
 
 
 def _int_param(request, name, default, minimum=1, maximum=None):
@@ -72,32 +87,42 @@ def auto_assessment_scores_data(request, course_id):
     Return one page of learners and their scores as JSON.
 
     Query params: ``page`` (default 1), ``page_size`` (default 10, max 100),
-    ``q`` (name, username or email) and ``assessment`` (a block id, limits the columns).
+    ``q`` (name, username or email), ``assessment`` (a block id, limits the columns)
+    and ``tz`` (the browser's IANA time zone, dates are written in it, UTC if missing).
+
+    Each ``assessments`` item carries ``attempted`` and ``total``: the learners with
+    a graded attempt and all active enrollees, over the whole course (``q`` and
+    ``assessment`` do not change them).
     """
     course_key = _course_key_for_staff(request, course_id)
     threshold = settings.EDL_AUTO_ASSESSMENT_THRESHOLD
 
     page_size = _int_param(request, "page_size", DEFAULT_PAGE_SIZE, maximum=MAX_PAGE_SIZE)
     page = _int_param(request, "page", 1)
-    query = request.GET.get("q", "").strip()
-    assessment = request.GET.get("assessment", "").strip()
+    query, assessment = _filter_params(request)
+    tz = _tz_param(request)
 
     all_columns = data.get_columns(course_key)
-    assessments = []
+    attempted, enrolled = data.get_attempt_counts(all_columns, course_key)
+    assessments = {}
     for column in all_columns:
-        if column["block_id"] not in [a["id"] for a in assessments]:
-            assessments.append({"id": column["block_id"], "name": column["assessment"]})
-    columns = [c for c in all_columns if c["block_id"] == assessment] if assessment else all_columns
+        assessments.setdefault(column["block_id"], {
+            "id": column["block_id"],
+            "name": column["assessment"],
+            "attempted": attempted.get(column["block_id"], 0),
+            "total": enrolled,
+        })
+    columns = data.filter_columns(all_columns, assessment)
 
     learners = data.learners_queryset(course_key, query)
     total = learners.count()
     num_pages = max(1, -(-total // page_size))
     page = min(page, num_pages)
     page_users = list(learners[(page - 1) * page_size:page * page_size])
-    cells = data.get_cells(columns, page_users, threshold)
+    cells, dates = data.get_cells(columns, page_users, threshold)
 
     return JsonResponse({
-        "assessments": assessments,
+        "assessments": list(assessments.values()),
         "columns": [
             {
                 "competency": c["competency"],
@@ -107,7 +132,7 @@ def auto_assessment_scores_data(request, course_id):
             }
             for c in columns
         ],
-        "learners": [data.learner_row(user, cells[user.id]) for user in page_users],
+        "learners": [data.learner_row(user, cells[user.id], dates[user.id], tz) for user in page_users],
         "page": page,
         "page_size": page_size,
         "total": total,

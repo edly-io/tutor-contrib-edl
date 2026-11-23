@@ -105,6 +105,13 @@ def get_columns(course_key):
     return columns
 
 
+def filter_columns(columns, assessment=None):
+    """Return the columns of the block id ``assessment``, or all columns if it is empty. An unknown id gives none."""
+    if not assessment:
+        return columns
+    return [c for c in columns if c["block_id"] == assessment]
+
+
 def learners_queryset(course_key, query=None):
     """Return active enrollees ordered by username, optionally filtered by name, username or email."""
     users = User.objects.filter(
@@ -120,7 +127,12 @@ def learners_queryset(course_key, query=None):
 
 def get_cells(columns, users, threshold):
     """
-    Return ``{user.id: [cell | None, ...]}`` with one cell per column.
+    Return ``(cells, dates)`` for ``users``.
+
+    ``cells`` is ``{user.id: [cell | None, ...]}`` with one cell per column.
+    ``dates`` is ``{user.id: {block_id: datetime}}``: the latest timestamp of
+    the chosen scores across the block's columns. A block the learner has no
+    score for has no key.
 
     Only fully graded scores with a usable maximum count. When several line
     items share a column label, the score with the latest timestamp wins.
@@ -130,8 +142,9 @@ def get_cells(columns, users, threshold):
 
     users = list(users)
     empty = {user.id: [None] * len(columns) for user in users}
+    no_dates = {user.id: {} for user in users}
     if not columns or not users:
-        return empty
+        return empty, no_dates
 
     user_by_external = {}
     for user_id, external_user_id in ExternalId.objects.filter(
@@ -139,7 +152,7 @@ def get_cells(columns, users, threshold):
     ).values_list("user_id", "external_user_id"):
         user_by_external[_norm(external_user_id)] = user_id
     if not user_by_external:
-        return empty
+        return empty, no_dates
 
     line_item_ids = [i for column in columns for i in column["line_item_ids"]]
     scores = LtiAgsScore.objects.filter(
@@ -169,29 +182,93 @@ def get_cells(columns, users, threshold):
             latest[key] = (given, maximum, timestamp)
 
     cells = empty
+    dates = no_dates
     for index, column in enumerate(columns):
         for user in users:
             candidates = [latest[(user.id, i)] for i in column["line_item_ids"] if (user.id, i) in latest]
             if not candidates:
                 continue
-            given, maximum, _ = max(candidates, key=lambda s: s[2])
+            given, maximum, timestamp = max(candidates, key=lambda s: s[2])
             cells[user.id][index] = report.make_cell(given, maximum, threshold)
-    return cells
+            block_dates = dates[user.id]
+            block_id = column["block_id"]
+            if block_id not in block_dates or timestamp > block_dates[block_id]:
+                block_dates[block_id] = timestamp
+    return cells, dates
 
 
-def learner_row(user, cells):
-    """Return the report row for ``user``."""
+def get_attempt_counts(columns, course_key):
+    """
+    Return ``({block_id: attempted}, total)`` across every active enrollee of the course.
+
+    ``attempted`` is the number of learners with at least one fully graded score
+    in the block, the same rule that gives a learner an Attempt Date in
+    ``get_cells``. ``total`` is the number of active enrollees. Search and
+    assessment filters never apply, so the numbers describe the whole course.
+
+    Runs three queries: the enrollee count, the enrollees' LTI external ids and
+    one distinct (user, line item) query. The scores are matched to learners in
+    Python so no large ``IN`` list is sent to the database.
+    """
+    from lti_consumer.models import LtiAgsScore  # pylint: disable=import-outside-toplevel
+    from openedx.core.djangoapps.external_user_ids.models import ExternalId  # pylint: disable=import-outside-toplevel
+
+    total = learners_queryset(course_key).count()
+    counts = {column["block_id"]: 0 for column in columns}
+    if not columns or not total:
+        return counts, total
+
+    user_by_external = {}
+    for user_id, external_user_id in ExternalId.objects.filter(
+        external_id_type__name="lti",
+        user__courseenrollment__course_id=course_key,
+        user__courseenrollment__is_active=True,
+    ).values_list("user_id", "external_user_id"):
+        user_by_external[_norm(external_user_id)] = user_id
+    if not user_by_external:
+        return counts, total
+
+    block_by_line_item = {i: column["block_id"] for column in columns for i in column["line_item_ids"]}
+    attempted = {block_id: set() for block_id in counts}
+    pairs = LtiAgsScore.objects.filter(
+        line_item_id__in=list(block_by_line_item),
+        grading_progress=LtiAgsScore.FULLY_GRADED,
+        score_given__isnull=False,
+    ).values_list("user_id", "line_item_id").distinct()
+    for external_id, line_item_id in pairs:
+        user_id = user_by_external.get(_norm(external_id))
+        if user_id is not None:
+            attempted[block_by_line_item[line_item_id]].add(user_id)
+    return {block_id: len(users) for block_id, users in attempted.items()}, total
+
+
+def learner_row(user, cells, dates=None, tz=None):
+    """
+    Return the report row for ``user``.
+
+    ``dates`` is ``{block_id: datetime}`` from ``get_cells``. It becomes
+    ``{block_id: {"date": "Oct 20, 2026", "note": ""}}`` in the row, with each
+    date written in the zone named ``tz`` (UTC if empty or unknown).
+    """
     profile = getattr(user, "profile", None)
     name = profile.name if profile is not None and profile.name else user.username
-    return {"name": name, "username": user.username, "email": user.email, "cells": cells}
+    return {
+        "name": name,
+        "username": user.username,
+        "email": user.email,
+        "cells": cells,
+        "dates": {
+            block_id: report.date_entry(report.format_date(value, tz)) for block_id, value in (dates or {}).items()
+        },
+    }
 
 
-def build_report(course_key, threshold):
-    """Return ``{"columns": [...], "learners": [...]}`` for every active enrollee."""
+def build_report(course_key, threshold, tz=None):
+    """Return ``{"columns": [...], "learners": [...]}`` for every active enrollee and every column."""
     columns = get_columns(course_key)
     users = list(learners_queryset(course_key))
-    cells = get_cells(columns, users, threshold)
+    cells, dates = get_cells(columns, users, threshold)
     return {
         "columns": columns,
-        "learners": [learner_row(user, cells[user.id]) for user in users],
+        "learners": [learner_row(user, cells[user.id], dates[user.id], tz) for user in users],
     }
