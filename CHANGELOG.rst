@@ -20,6 +20,7 @@ Added
 * Add an "Attempt date" column (for example "Oct 20, 2026", in the viewer's browser time zone) as the first column of every assessment in the Auto Assessments table and CSV.
 * Add ``attempted`` and ``total`` (learners with a graded attempt, and all active enrollees, over the whole course) to each ``assessments`` item of the data JSON.
 * Add a "Clear filters" button while a search is active, a "Showing X of Y learners" count line and a "No learners match" empty state.
+* Allow Studio users to rerun courses they can edit when they have a course creation grant for the course's organization (EDLINTERNA-32).
 
 Changed
 =======
