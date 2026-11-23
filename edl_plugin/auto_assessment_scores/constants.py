@@ -4,7 +4,7 @@ STATUS_DEMONSTRATED = "demonstrated"
 STATUS_NOT_DEMONSTRATED = "not_demonstrated"
 STATUS_LABELS = {
     STATUS_DEMONSTRATED: "Demonstrated",
-    STATUS_NOT_DEMONSTRATED: "Not Demonstrated",
+    STATUS_NOT_DEMONSTRATED: "Not demonstrated",
 }
 
 DEFAULT_THRESHOLD = 75

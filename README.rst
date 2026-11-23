@@ -15,11 +15,14 @@ How it works
   course staff access.
 * **Download**: ``/courses/<course_id>/instructor/auto_assessments/csv``, built in
   the request from ``LtiAgsLineItem`` and ``LtiAgsScore``. Course staff only.
+  It holds every learner and criterion. ``tz`` sets the zone of the dates.
 * **CSV layout**: one row per learner, one column per learning criterion. Row 1
   repeats the competency (the course title) above each criterion, row 2 the
   assessment name, and row 3 holds ``Learner, Username, Email`` and the criteria
-  names. The table shows the same three levels as merged headers.
-* **Cells**: ``87% (Demonstrated)`` or ``53% (Not Demonstrated)``. Demonstrated at
+  names. The table shows the course name in its heading and the assessment and
+  criterion as two header rows. A learner with no attempt in an assessment gets one
+  merged "No attempt yet" cell. Dates read like ``Oct 20, 2026``.
+* **Cells**: ``87% (Demonstrated)`` or ``53% (Not demonstrated)``. Demonstrated at
   or above ``EDL_AUTO_ASSESSMENT_THRESHOLD`` (default 75). Blank means no fully
   graded score.
 * **Excluded labels**: line items whose label is in

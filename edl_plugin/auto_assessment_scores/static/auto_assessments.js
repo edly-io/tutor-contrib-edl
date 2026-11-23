@@ -1,11 +1,20 @@
 /* Auto Assessments tab: registers the section with the legacy instructor dashboard
  * and renders the paged scores table. Server data is only ever written with
- * textContent, never innerHTML. */
+ * textContent (or setAttribute for title), never innerHTML. */
 (function () {
   'use strict';
 
   var PAGE_SIZES = [10, 25, 50];
-  var state = {page: 1, pageSize: 10, q: '', assessment: '', loaded: false, requestId: 0, timer: null};
+  var NO_ATTEMPT = 'No attempt yet';
+  var BASE_TITLE = 'Auto Assessments';
+  var FONT_LINK_ID = 'edl-inter-font';
+  var FONT_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap';
+  // Column widths in px, used for the table's minimum width so many assessments scroll sideways.
+  var LEARNER_WIDTH = 200;
+  var DATE_WIDTH = 96;
+  var CRITERION_MIN_WIDTH = 136;
+
+  var state = {page: 1, pageSize: 10, q: '', assessment: '', loaded: false, requestId: 0, timer: null, courseName: ''};
   var els = {};
 
   function el(tag, className, text) {
@@ -17,13 +26,48 @@
 
   function root() { return document.querySelector('#auto_assessments .edl-aa'); }
 
+  // Inter comes from Google Fonts. If it is blocked the CSS falls back to the system font.
+  function loadFont() {
+    if (document.getElementById(FONT_LINK_ID)) { return; }
+    var connect = el('link');
+    connect.rel = 'preconnect';
+    connect.href = 'https://fonts.googleapis.com';
+    var connectStatic = el('link');
+    connectStatic.rel = 'preconnect';
+    connectStatic.href = 'https://fonts.gstatic.com';
+    connectStatic.crossOrigin = 'anonymous';
+    var sheet = el('link');
+    sheet.id = FONT_LINK_ID;
+    sheet.rel = 'stylesheet';
+    sheet.href = FONT_URL;
+    document.head.appendChild(connect);
+    document.head.appendChild(connectStatic);
+    document.head.appendChild(sheet);
+  }
+
+  function srLabel(text, forId) {
+    var label = el('label', 'sr-only', text);
+    label.setAttribute('for', forId);
+    return label;
+  }
+
+  // Always the whole course: the link carries no search or assessment filter.
+  function buildDownload(host) {
+    var link = el('a', 'edl-aa-download', 'Download CSV');
+    link.href = withZone(host.getAttribute('data-csv-url'));
+    return link;
+  }
+
   function buildControls(host) {
+    var tableRoot = host.querySelector('.edl-aa-table-root');
+    els.title = host.querySelector('.edl-aa-title');
+    els.intro = host.querySelector('.edl-aa-intro');
     var bar = el('div', 'edl-aa-bar');
 
     els.search = el('input', 'edl-aa-search');
+    els.search.id = 'edl-aa-search';
     els.search.type = 'search';
-    els.search.placeholder = 'Search name, username or email';
-    els.search.setAttribute('aria-label', 'Search learners');
+    els.search.placeholder = 'Name, username or email';
     els.search.addEventListener('input', function () {
       window.clearTimeout(state.timer);
       state.timer = window.setTimeout(function () {
@@ -33,8 +77,20 @@
       }, 300);
     });
 
+    els.clear = el('button', 'edl-aa-clear', 'Clear filters');
+    els.clear.type = 'button';
+    els.clear.hidden = true;
+    els.clear.addEventListener('click', function () {
+      window.clearTimeout(state.timer);
+      els.search.value = '';
+      state.q = '';
+      state.page = 1;
+      fetchPage();
+      els.search.focus();
+    });
+
     els.select = el('select', 'edl-aa-assessment');
-    els.select.setAttribute('aria-label', 'Filter by assessment');
+    els.select.id = 'edl-aa-assessment';
     els.select.appendChild(new Option('All assessments', ''));
     els.select.addEventListener('change', function () {
       state.assessment = els.select.value;
@@ -42,40 +98,162 @@
       fetchPage();
     });
 
-    els.legend = el('span', 'edl-aa-legend');
+    bar.appendChild(srLabel('Search learners', els.search.id));
     bar.appendChild(els.search);
+    bar.appendChild(els.clear);
+    bar.appendChild(srLabel('Assessment', els.select.id));
     bar.appendChild(els.select);
-    bar.appendChild(els.legend);
+    bar.appendChild(buildDownload(host));
 
-    var download = host.querySelector('.edl-aa-download');
-    if (download) {
-      download.href = withZone(host.getAttribute('data-csv-url') || download.getAttribute('href'));
-      bar.appendChild(download);
-    }
-    host.querySelector('.edl-aa-table-root').appendChild(bar);
+    // Replace the no-JavaScript fallback link with this button.
+    var fallback = host.querySelector('.edl-aa-download-fallback');
+    if (fallback) { fallback.remove(); }
+    tableRoot.appendChild(bar);
 
     els.status = el('div', 'edl-aa-status');
     els.status.setAttribute('role', 'status');
     els.scroll = el('div', 'edl-aa-scroll');
     els.scroll.tabIndex = 0;
     els.scroll.setAttribute('role', 'region');
-    els.scroll.setAttribute('aria-label', 'Auto assessment scores');
+    els.scroll.setAttribute('aria-label', 'Learner scores table, scrolls sideways');
     els.footer = el('div', 'edl-aa-footer');
-    var tableRoot = host.querySelector('.edl-aa-table-root');
     tableRoot.appendChild(els.status);
     tableRoot.appendChild(els.scroll);
     tableRoot.appendChild(els.footer);
   }
 
-  function setLegend(threshold) {
-    els.legend.textContent = '';
-    els.legend.appendChild(el('span', 'edl-aa-chip edl-aa-demonstrated', 'Demonstrated ' + threshold + '% or more'));
-    els.legend.appendChild(el('span', 'edl-aa-chip edl-aa-not-demonstrated', 'Not Demonstrated below ' + threshold + '%'));
+  // The course name is the competency of every column (see get_columns), so no extra field is needed.
+  function setHeading(payload) {
+    if (payload.columns.length) { state.courseName = payload.columns[0].competency || ''; }
+    els.title.textContent = state.courseName ? BASE_TITLE + ' for ' + state.courseName : BASE_TITLE;
+    els.intro.textContent = 'Scores for each learning criterion. A criterion is Demonstrated at ' +
+      payload.threshold + '% or more.';
   }
 
+  // Rebuilt on every response so the counts stay current. The selected option is kept.
   function setAssessments(assessments) {
-    if (els.select.options.length > 1) { return; }  // keep the full list across filtered responses
-    assessments.forEach(function (a) { els.select.appendChild(new Option(a.name, a.id)); });
+    var selected = state.assessment;
+    els.select.textContent = '';
+    els.select.appendChild(new Option('All assessments (' + assessments.length + ' assessments)', ''));
+    assessments.forEach(function (a) {
+      els.select.appendChild(new Option(a.name + ' (' + a.attempted + ' of ' + a.total + ' attempted)', a.id));
+    });
+    els.select.value = selected;
+  }
+
+  function setClear() { els.clear.hidden = !state.q; }
+
+  function noMatch() {
+    var box = el('div', 'edl-aa-nomatch');
+    box.appendChild(el('strong', null, 'No learners match'));
+    box.appendChild(document.createTextNode('Try a different search.'));
+    return box;
+  }
+
+  function dateCell(info) {
+    var td = el('td', 'edl-aa-date edl-aa-group-start');
+    td.appendChild(el('div', 'edl-aa-date-text', info.date));
+    if (info.note) { td.appendChild(el('div', 'edl-aa-date-note', info.note)); }
+    return td;
+  }
+
+  function scoreCell(cell) {
+    var td = el('td');
+    if (cell === null) {
+      td.className = 'edl-aa-none';
+      td.textContent = NO_ATTEMPT;
+      return td;
+    }
+    var demonstrated = cell.status === 'demonstrated';
+    td.className = demonstrated ? 'edl-aa-demonstrated' : 'edl-aa-not-demonstrated';
+    td.appendChild(el('div', 'edl-aa-pct', cell.percent + '%'));
+    td.appendChild(el('div', 'edl-aa-label', demonstrated ? 'Demonstrated' : 'Not demonstrated'));
+    return td;
+  }
+
+  function learnerCell(learner) {
+    var th = el('th', 'edl-aa-sticky edl-aa-learner');
+    th.scope = 'row';
+    th.appendChild(el('strong', null, learner.name));
+    th.appendChild(el('div', 'edl-aa-sub', learner.username));
+    var email = el('div', 'edl-aa-email', learner.email);
+    email.setAttribute('title', learner.email);
+    th.appendChild(email);
+    return th;
+  }
+
+  // Splits the flat column list into one block per assessment: {id, name, start, count}.
+  function groupColumns(columns) {
+    var blocks = [];
+    columns.forEach(function (c, idx) {
+      var last = blocks[blocks.length - 1];
+      if (last && last.id === c.block_id) {
+        last.count += 1;
+      } else {
+        blocks.push({id: c.block_id, name: c.assessment, start: idx, count: 1});
+      }
+    });
+    return blocks;
+  }
+
+  function buildColgroup(blocks) {
+    var colgroup = el('colgroup');
+    colgroup.appendChild(el('col', 'edl-aa-col-learner'));
+    blocks.forEach(function (block) {
+      colgroup.appendChild(el('col', 'edl-aa-col-date'));
+      for (var n = 0; n < block.count; n += 1) { colgroup.appendChild(el('col')); }
+    });
+    return colgroup;
+  }
+
+  function buildHead(columns, blocks) {
+    var head = el('thead');
+    var row1 = el('tr');
+    var row2 = el('tr');
+
+    var learnerHead = el('th', 'edl-aa-sticky edl-aa-learner-head', 'Learner');
+    learnerHead.rowSpan = 2;
+    learnerHead.scope = 'col';
+    row1.appendChild(learnerHead);
+
+    blocks.forEach(function (block) {
+      var group = el('th', 'edl-aa-group', block.name);
+      group.colSpan = block.count + 1;  // plus the "Attempt date" column
+      group.scope = 'colgroup';
+      row1.appendChild(group);
+
+      var dateHead = el('th', 'edl-aa-date-head edl-aa-group-start', 'Attempt date');
+      dateHead.scope = 'col';
+      row2.appendChild(dateHead);
+      for (var n = block.start; n < block.start + block.count; n += 1) {
+        var th = el('th', 'edl-aa-criterion', columns[n].criterion);
+        th.scope = 'col';
+        row2.appendChild(th);
+      }
+    });
+    head.appendChild(row1);
+    head.appendChild(row2);
+    return head;
+  }
+
+  function buildRow(learner, blocks) {
+    var tr = el('tr');
+    tr.appendChild(learnerCell(learner));
+    blocks.forEach(function (block) {
+      var info = (learner.dates || {})[block.id];
+      if (!info || !info.date) {
+        // One merged cell per assessment, never per row.
+        var none = el('td', 'edl-aa-none edl-aa-group-start', NO_ATTEMPT);
+        none.colSpan = block.count + 1;
+        tr.appendChild(none);
+        return;
+      }
+      tr.appendChild(dateCell(info));
+      for (var n = block.start; n < block.start + block.count; n += 1) {
+        tr.appendChild(scoreCell(learner.cells[n]));
+      }
+    });
+    return tr;
   }
 
   function renderTable(payload) {
@@ -85,99 +263,21 @@
       return;
     }
     if (!payload.learners.length) {
-      els.status.textContent = 'No learners found.';
+      els.status.textContent = '';
+      els.scroll.appendChild(state.q ? noMatch() : el('div', 'edl-aa-nomatch', 'No learners found.'));
       return;
     }
     els.status.textContent = '';
 
+    var blocks = groupColumns(payload.columns);
     var table = el('table', 'edl-aa-table');
-    var head = el('thead');
-    var rowC = el('tr');
-    var row1 = el('tr');
-    var row2 = el('tr');
-
-    var learnerHead = el('th', 'edl-aa-sticky edl-aa-learner-head', 'Learner');
-    learnerHead.rowSpan = 3;
-    learnerHead.scope = 'col';
-    rowC.appendChild(learnerHead);
-
-    var starts = payload.columns.map(function (c, k) { return k === 0 || payload.columns[k - 1].block_id !== c.block_id; });
-
-    var j = 0;
-    while (j < payload.columns.length) {
-      var competency = payload.columns[j].competency;
-      var cStart = j;
-      while (j < payload.columns.length && payload.columns[j].competency === competency) { j += 1; }
-      var comp = el('th', 'edl-aa-competency');
-      comp.appendChild(el('span', 'edl-aa-group-label', competency));
-      // One extra "Attempt Date" column per assessment inside this competency.
-      var assessmentCount = starts.slice(cStart, j).filter(Boolean).length;
-      comp.colSpan = (j - cStart) + assessmentCount;
-      comp.scope = 'colgroup';
-      rowC.appendChild(comp);
-    }
-
-    var i = 0;
-    while (i < payload.columns.length) {
-      var blockId = payload.columns[i].block_id;
-      var start = i;
-      while (i < payload.columns.length && payload.columns[i].block_id === blockId) { i += 1; }
-      var group = el('th', 'edl-aa-group');
-      group.appendChild(el('span', 'edl-aa-group-label', payload.columns[start].assessment));
-      group.colSpan = (i - start) + 1;  // plus the "Attempt Date" column
-      group.scope = 'colgroup';
-      row1.appendChild(group);
-    }
-    payload.columns.forEach(function (c, idx) {
-      if (starts[idx]) {
-        var dateHead = el('th', 'edl-aa-date-head edl-aa-group-start', 'Attempt Date');
-        dateHead.scope = 'col';
-        row2.appendChild(dateHead);
-      }
-      var th = el('th', 'edl-aa-criterion', c.criterion);
-      th.scope = 'col';
-      row2.appendChild(th);
-    });
-    head.appendChild(rowC);
-    head.appendChild(row1);
-    head.appendChild(row2);
-    table.appendChild(head);
+    table.style.minWidth = (LEARNER_WIDTH + blocks.length * DATE_WIDTH +
+      payload.columns.length * CRITERION_MIN_WIDTH) + 'px';
+    table.appendChild(buildColgroup(blocks));
+    table.appendChild(buildHead(payload.columns, blocks));
 
     var body = el('tbody');
-    payload.learners.forEach(function (learner) {
-      var tr = el('tr');
-      var th = el('th', 'edl-aa-sticky edl-aa-learner');
-      th.scope = 'row';
-      th.appendChild(el('strong', null, learner.name));
-      th.appendChild(el('div', 'edl-aa-sub', learner.username));
-      th.appendChild(el('div', 'edl-aa-sub', learner.email));
-      tr.appendChild(th);
-      learner.cells.forEach(function (cell, idx) {
-        if (starts[idx]) {
-          var dateTd = el('td', 'edl-aa-date edl-aa-group-start');
-          var info = (learner.dates || {})[payload.columns[idx].block_id];
-          if (info && info.date) {
-            dateTd.appendChild(el('div', 'edl-aa-date-text', info.date));
-            if (info.note) { dateTd.appendChild(el('div', 'edl-aa-date-note', info.note)); }
-          } else {
-            dateTd.classList.add('edl-aa-date-none');
-            dateTd.textContent = '-';
-          }
-          tr.appendChild(dateTd);
-        }
-        var td = el('td');
-        if (cell === null) {
-          td.className = 'edl-aa-empty';
-        } else {
-          var demonstrated = cell.status === 'demonstrated';
-          td.className = demonstrated ? 'edl-aa-demonstrated' : 'edl-aa-not-demonstrated';
-          td.appendChild(el('div', 'edl-aa-pct', cell.percent + '%'));
-          td.appendChild(el('div', 'edl-aa-label', demonstrated ? 'Demonstrated' : 'Not Demonstrated'));
-        }
-        tr.appendChild(td);
-      });
-      body.appendChild(tr);
-    });
+    payload.learners.forEach(function (learner) { body.appendChild(buildRow(learner, blocks)); });
     table.appendChild(body);
     els.scroll.appendChild(table);
   }
@@ -196,9 +296,9 @@
 
   function renderFooter(payload) {
     els.footer.textContent = '';
-    var first = payload.total ? (payload.page - 1) * payload.page_size + 1 : 0;
-    var last = Math.min(payload.page * payload.page_size, payload.total);
-    els.footer.appendChild(el('span', 'edl-aa-info', 'Showing learners ' + first + ' to ' + last + ' of ' + payload.total));
+    var info = el('span', 'edl-aa-info', 'Showing ' + payload.learners.length + ' of ' + payload.total + ' learners');
+    info.setAttribute('role', 'status');
+    els.footer.appendChild(info);
 
     var size = el('select', 'edl-aa-size');
     size.setAttribute('aria-label', 'Rows per page');
@@ -246,6 +346,7 @@
       page: state.page, page_size: state.pageSize, q: state.q, assessment: state.assessment, tz: browserZone()
     });
     els.status.textContent = 'Loading...';
+    setClear();
 
     fetch(url + '?' + params.toString(), {credentials: 'same-origin'})
       .then(function (response) {
@@ -255,7 +356,7 @@
       .then(function (payload) {
         if (requestId !== state.requestId) { return; }  // a newer request replaced this one
         state.page = payload.page;
-        setLegend(payload.threshold);
+        setHeading(payload);
         setAssessments(payload.assessments);
         renderTable(payload);
         renderFooter(payload);
@@ -273,6 +374,7 @@
       var host = root();
       if (!host || state.loaded || !host.getAttribute('data-data-url')) { return; }
       state.loaded = true;
+      loadFont();
       buildControls(host);
       fetchPage();
     }
