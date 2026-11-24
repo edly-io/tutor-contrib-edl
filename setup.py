@@ -153,6 +153,9 @@ setup(
         'lms.djangoapp': [
             'edl_plugin = edl_plugin.apps:EdlPluginConfig',
         ],
+        'cms.djangoapp': [
+            'edl_plugin = edl_plugin.apps:EdlPluginConfig',
+        ],
     },
     install_requires=load_requirements('requirements/base.in'),
     python_requires=">=3.11",
