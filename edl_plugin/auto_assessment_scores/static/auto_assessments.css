@@ -125,6 +125,8 @@
   color: #111827 !important;
   overflow-wrap: anywhere;
 }
+/* The assessment title stays in view beside the learner column while the table scrolls sideways. */
+.edl-aa-group-title { display: inline-block; position: sticky; left: 216px; }
 .edl-aa-criterion {
   font-size: 13px;
   font-weight: 500 !important;
@@ -205,6 +207,7 @@ thead .edl-aa-sticky { z-index: 2; vertical-align: bottom; font-size: 13px; font
   .edl-aa-assessment { flex: 1 1 100%; min-width: 0; }
   .edl-aa-download { margin-left: 0; }
   .edl-aa-col-learner { width: 150px; }
+  .edl-aa-group-title { left: 166px; }
   .edl-aa-pager { margin-left: 0; }
 }
 
