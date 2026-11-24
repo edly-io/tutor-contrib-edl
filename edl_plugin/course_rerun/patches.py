@@ -42,7 +42,7 @@ def _patch_context(name, expected_signature):
         if "rerun_creator_status" in context:
             # The original context already called Studio's _get_course_creator_status.
             context["rerun_creator_status"] = can_show_rerun(
-                context["rerun_creator_status"], context["course_creator_status"]
+                context["rerun_creator_status"], context.get("course_creator_status")
             )
         return context
 

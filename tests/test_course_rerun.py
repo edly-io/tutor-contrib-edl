@@ -167,6 +167,20 @@ def test_home_context_flags(studio, is_staff, creator_status, shown):
     assert studio.home.get_library_context(request, request_is_json=True) == {"libraries": []}
 
 
+def test_home_context_without_creator_status_falls_back_to_global_staff(studio, monkeypatch):
+    def get_home_context(request, no_course=False):
+        return {"rerun_creator_status": request.user.is_staff}
+
+    monkeypatch.setattr(studio.utils, "get_home_context", get_home_context)
+    monkeypatch.setattr(studio.home, "get_home_context", get_home_context)
+    patches.apply_patches()
+
+    staff = SimpleNamespace(user=SimpleNamespace(is_staff=True))
+    other = SimpleNamespace(user=SimpleNamespace(is_staff=False))
+    assert studio.home.get_home_context(staff)["rerun_creator_status"] is True
+    assert studio.home.get_home_context(other)["rerun_creator_status"] is False
+
+
 def test_legacy_handler_keeps_login_and_get_guards(studio, rf):
     patches.apply_patches()
     request = rf.get("/")
