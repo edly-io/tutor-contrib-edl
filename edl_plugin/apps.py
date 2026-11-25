@@ -27,6 +27,11 @@ class EdlPluginConfig(AppConfig):
                 "regex": r"",
                 "relative_path": "urls",
             },
+            "cms.djangoapp": {
+                "namespace": "edl_plugin_cms",
+                "regex": r"^api/edl/",
+                "relative_path": "cms_urls",
+            },
         },
         "settings_config": {
             "lms.djangoapp": {
