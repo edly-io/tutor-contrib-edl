@@ -11,7 +11,7 @@ class EdlPluginConfig(AppConfig):
     Registers the plugin's LMS URLs (mounted at the site root so the full
     ``/courses/<course_id>/instructor/auto_assessments/...`` paths resolve) and
     its settings hook (which wires the instructor-dashboard render filter and
-    the Mako template directory). Studio only uses the rerun patches.
+    the Mako template directory). Studio uses the rerun and course team patches.
     Uses raw string keys instead of the
     ``PluginURLs``/``PluginSettings`` constants so the package imports cleanly
     without a hard dependency on a specific edx-platform module path.
@@ -44,9 +44,13 @@ class EdlPluginConfig(AppConfig):
     }
 
     def ready(self):
-        """Install course rerun patches only in Studio."""
+        """Install Studio-only patches."""
         # Ulmo uses cms.urls for Studio even when SERVICE_VARIANT is overridden.
         if getattr(settings, "ROOT_URLCONF", None) == "cms.urls":
             from .course_rerun.patches import apply_patches
 
             apply_patches()
+
+            from .course_team.patches import apply_patches as apply_course_team_patches
+
+            apply_course_team_patches()
