@@ -180,6 +180,12 @@ def test_endpoint_auth_and_errors(platform):
     force_authenticate(request, user=platform.target)
     response = view(request, username="target")
     assert response.status_code == 403 and response.data["code"] == "not_service_account"
+    platform.caller.is_staff = False
+    request = factory.get("/")
+    force_authenticate(request, user=platform.caller)
+    response = view(request, username="target")
+    assert response.status_code == 403 and response.data["code"] == "not_service_account"
+    platform.caller.is_staff = True
     request = factory.post("/", {"org_admin": True, "organizations": []}, format="json")
     force_authenticate(request, user=platform.caller)
     response = view(request, username="target")

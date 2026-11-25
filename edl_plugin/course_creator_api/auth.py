@@ -26,4 +26,10 @@ class IsPortalServiceAccount(BasePermission):
 
     def has_permission(self, request, view):
         """Check the authenticated identity."""
-        return bool(request.user and request.user.is_authenticated and request.user.username == service_username())
+        user = request.user
+        return bool(
+            user
+            and user.is_authenticated
+            and user.is_staff
+            and user.username == service_username()
+        )
